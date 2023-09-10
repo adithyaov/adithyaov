@@ -1,0 +1,14 @@
+* Network Attached Storage
+
+This project has the following goals:
+- Host a service at home using a rasberry pi for managing Photos.
+- This Pi can be connected to multiple storage units.
+- Have a user system in place for the family (Can probably use the Linux user space).
+- Create an Andriod and an IOS app that can backup the photos and access the storage.
+- This service should be available even when not connectd to the home network.
+
+This is a relatively larger project and should be implemened in simpler steps.
+
+** Implementation Plan
+
+WIP

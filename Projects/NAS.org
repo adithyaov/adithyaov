@@ -9,6 +9,170 @@ This project has the following goals:
 
 This is a relatively larger project and should be implemened in simpler steps.
 
-** Implementation Plan
 
-WIP
+** Components required
+
+1. Raspberry Pi (I've used Zero W 2)
+2. 32 GB micro SD card for Raspberry Pi
+3. Adaptor for Raspberry Pi
+4. USB Hub (We need a powered USB Hub as the Pi cannot power the SSD)
+5. Adaptor for USB Hub
+6. 1 TB SSD (Flash)
+7. Chord to connect Raspberry Pi to the USB Hub
+8. Chord to connect USB Hub to the SSD
+
+** Setup Raspberry Pi
+
+1. Insert the SD card in your laptop
+2. Burn the Raspberry Pi Lite onto the memory card.
+   See: https://www.raspberrypi.com/software/
+
+Post this you'll be able to =ssh= into your Pi with,
+
+#+BEGIN_src
+ssh pi@192.168.x.y
+#+END_src
+
+where =pi= is the username and =192.168.x.y= is the IP of Pi on the local
+network. You can get this from the router admin page. You can access it at
+=192.168.1.1= on most routers.
+
+If you're unable to =ssh= into your Pi,
+- Make sure you are connected to the same network as the Pi.
+- Use the 2G network (My Pi only supports the 2G band)
+- Open the router admin page on your browser. You can access it at =192.168.1.1=
+  on most routers. Make sure your Pi is connected.
+- It takes a few minutes for the Pi to come online. If the light on the Pi is
+  blinking, it means there is some network activity. Wait till the Pi stops
+  blinking.
+
+** Connect the required components
+
+Connect the required components after Pi boots up.
+Ie. After you're able to ssh into Pi. After the the blinking stops.
+
+This is how the connections should look like,
+
+#+BEGIN_src
+
+┌─────┐
+│Power│
+└┬─┬──┘
+ │┌▽───────────┐
+ ││raspberry pi│
+ │└┬───────────┘
+┌▽─▽────┐
+│USB Hub│
+└┬──────┘
+┌▽───────┐
+│1 TB SSD│
+└────────┘
+
+#+END_src
+
+
+** Install nextcloud via docker on Pi
+
+**UPDATE**: This turned out to be rather heavy on Pi Zero. I'll be replacing
+this in the future.
+
+SSH into your Pi.
+
+I'm installing the nextcloud and dependencies via docker. You can also use nix
+for a more robust installation. But I stuck with docker. I will possibly install
+nixos in the future.
+
+Installing docker is **NOT** straight forward. Nothing ever is. Great if you've
+had a seamless installation. If you've not, you're not the only one.
+
+I'm not going to cover the docker installation.
+
+
+Pull nextcloud and postgres from docker,
+
+#+BEGIN_src
+docker pull arm32v7/nextcloud:latest
+docker pull arm32v7/postgres:latest
+#+END_src
+
+Since we want the nextcloud container to talk to the postgres container, we need
+to create a network bridge between them.
+
+#+BEGIN_src
+docker network create --driver bridge nextcloud-network
+#+END_src
+
+** Run nextcloud via docker on Pi
+
+We want to use the external external SSD for storage.
+To use it, first we need to mount it.
+
+Use the following command to list the devices,
+
+#+BEGIN_src
+lsblk
+#+END_src
+
+#+BEGIN_src
+NAME        MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+sda           8:0    0 931.5G  0 disk
+└─sda1        8:1    0 931.5G  0 part
+mmcblk0     179:0    0  29.7G  0 disk
+├─mmcblk0p1 179:1    0   256M  0 part /boot
+└─mmcblk0p2 179:2    0  29.5G  0 part /
+#+END_src
+
+=sda1= is the SSD in my case. You might get a different result.
+
+You can then mount it,
+
+Create the mount point if it does not exist. You'll need to do this only once.
+
+#+BEGIN_src
+mkdir /home/pi/Berry
+#+END_src
+
+Mount the disk,
+
+#+BEGIN_src
+sudo mount /dev/sda1 /home/pi/Berry
+#+END_src
+
+Here I'm mounting it on the =$HOME= folder of the user named =pi=.
+
+The SSD is automatically unmounted if the device shuts down. You can use =fstab=
+to permanently mount it to a specific location.
+
+We can now continue with starting the containers,
+
+Start the postgres container:
+
+#+BEGIN_src
+docker run --name postgres-container -d -e POSTGRES_PASSWORD=123456 --network nextcloud-network postgres
+#+END_src
+
+Create a directory for nextcloud on your home folder,
+
+#+BEGIN_src
+mkdir /home/pi/nextcloud
+#+END_src
+
+Start the nextcloud binding certain volumes and the port.
+
+#+BEGIN_src
+docker run --name nextcloud-container -d -p 8080:80 -v /home/pi/Berry:/data -v /home/pi/nextcloud:/var/www/html --network nextcloud-network nextcloud
+#+END_src
+
+After a few minutes you should be able to browse to http://192.168.x.y:8080/ to
+see the nextcloud dashboard.
+
+#+BEGIN_comment
+Scratch notes to be rewritten:
+
+Go through the next cloud installation process. Select postgres as the database
+while installation with the username being =postgres=, password being =123456=
+and database name being =postgres=.
+
+To use the external disk =Berry=, enable =External Disks= in Apps and use the
+external disk.
+#+END_comment

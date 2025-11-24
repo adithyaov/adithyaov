@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+<title>Adithya Kumar</title>
+<id>https://adithya.cc</id>
+<link rel="self" href="https://adithya.cc/feed.xml"/>
+<link rel="alternate" href="https://adithya.cc"/>
+<author>
+<name>Adithya Kumar</name>
+</author>
+<updated>2025-11-24T19:20:20.307Z</updated>
+
+<entry>
+<title>Emacs in the terminal vs GUI</title>
+<id>https://adithya.cc/posts/emacs/emacs-term-vs-gui.html</id>
+<link rel="alternate" href="https://adithya.cc/posts/emacs/emacs-term-vs-gui.html"/>
+<updated>2025-11-02T00:00:00.000Z</updated>
+
+<content type="html">&lt;p&gt;I love applications that run directly on the terminal. They are much simpler, require minimal dependencies, and play very nicely with other terminal tools like tmux. While there are a few things I lose when running apps in the terminal, the pros far outweigh the cons.&lt;/p&gt;
+&lt;p&gt;I&amp;#39;ve been using Emacs in the terminal for over five years now. I&amp;#39;ve occasionally switched to a GUI app, but it never stuck with me. The only reason I switched was because the GUI app has a better look and feel to it. But look and feel do not get the job done.&lt;/p&gt;
+&lt;h3 id=&quot;con-look-and-feel&quot;&gt;Con: Look and feel&lt;/h3&gt;
+&lt;p&gt;As I said before, there is no doubt that the GUI version of Emacs looks a lot better than the terminal version. This probably depends on the terminal you use, but Emacs in the most beautiful terminal emulator feels less polished than the GUI version.&lt;/p&gt;
+&lt;p&gt;For example,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Markdown and Org files look much better with custom font sizes in the GUI, but look rather bland in the terminal.&lt;/li&gt;
+&lt;li&gt;LSP can be configured to look much better in the GUI, whereas you&amp;#39;ll have to stick to a simpler interface in the terminal.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&quot;con-setup&quot;&gt;Con: Setup&lt;/h3&gt;
+&lt;p&gt;The GUI version of Emacs is much easier to set up. The keybindings and theming configuration work as expected, and nothing specific to GUI will surprise you.&lt;/p&gt;
+&lt;p&gt;The terminal version needs a little more setup work. In my experience I&amp;#39;ve always had to spend some time fixing the theme and/or keybindings in the terminal. While I&amp;#39;m able to reliably fix the key bindings, the theme always gives me issues.&lt;/p&gt;
+&lt;p&gt;The keybindings won&amp;#39;t work out of the box, as the terminal either does not recognize the input key codes or the input is lost because some application in the middle eats the input. The only reliable fix to this is to have a compatibility layer in Emacs and some application that can listen to keystrokes and translate them according to the compatibility layer.&lt;/p&gt;
+&lt;p&gt;In my case, the following key combinations don&amp;#39;t work directly out of the box:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;M-O&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;C-&amp;lt;return&amp;gt;&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;C-/&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;My compatibility layer looks like the following:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;(defun configure-compatibility ()
+  (&lt;span class=&quot;hljs-built_in&quot;&gt;define&lt;/span&gt;-&lt;span class=&quot;hljs-built_in&quot;&gt;key&lt;/span&gt; &lt;span class=&quot;hljs-built_in&quot;&gt;key&lt;/span&gt;-translation-&lt;span class=&quot;hljs-built_in&quot;&gt;map&lt;/span&gt; (kbd &lt;span class=&quot;hljs-string&quot;&gt;&amp;quot;C-c c u&amp;quot;&lt;/span&gt;) (kbd &lt;span class=&quot;hljs-string&quot;&gt;&amp;quot;C-/&amp;quot;&lt;/span&gt;))
+  (&lt;span class=&quot;hljs-built_in&quot;&gt;define&lt;/span&gt;-&lt;span class=&quot;hljs-built_in&quot;&gt;key&lt;/span&gt; &lt;span class=&quot;hljs-built_in&quot;&gt;key&lt;/span&gt;-translation-&lt;span class=&quot;hljs-built_in&quot;&gt;map&lt;/span&gt; (kbd &lt;span class=&quot;hljs-string&quot;&gt;&amp;quot;C-c c e&amp;quot;&lt;/span&gt;) (kbd &lt;span class=&quot;hljs-string&quot;&gt;&amp;quot;C-&amp;lt;return&amp;gt;&amp;quot;&lt;/span&gt;))
+  (&lt;span class=&quot;hljs-built_in&quot;&gt;define&lt;/span&gt;-&lt;span class=&quot;hljs-built_in&quot;&gt;key&lt;/span&gt; &lt;span class=&quot;hljs-built_in&quot;&gt;key&lt;/span&gt;-translation-&lt;span class=&quot;hljs-built_in&quot;&gt;map&lt;/span&gt; (kbd &lt;span class=&quot;hljs-string&quot;&gt;&amp;quot;C-c c o&amp;quot;&lt;/span&gt;) (kbd &lt;span class=&quot;hljs-string&quot;&gt;&amp;quot;M-O&amp;quot;&lt;/span&gt;)))
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;I&amp;#39;ve picked &lt;code&gt;C-c c&lt;/code&gt; as the compatibility prefix here, but any prefix that passes through should work.&lt;/p&gt;
+&lt;p&gt;This should be followed by somehow capturing these key combinations in the OS layer and passing the translated variants to the applications. You can use &lt;code&gt;AutoHotkey&lt;/code&gt; on Windows, &lt;code&gt;Kmonad&lt;/code&gt; on Linux, and &lt;code&gt;Karabiner&lt;/code&gt; on Darwin.&lt;/p&gt;
+&lt;h3 id=&quot;pro-can-be-used-over-the-network&quot;&gt;Pro: Can be used over the network&lt;/h3&gt;
+&lt;p&gt;If you&amp;#39;re already accustomed to using Emacs on the terminal, your workflow would be exactly the same when working on other machines over the network. Just &lt;code&gt;scp&lt;/code&gt; your &lt;code&gt;init.el&lt;/code&gt; to the remote machine and start working.&lt;/p&gt;
+&lt;p&gt;This isn&amp;#39;t possible on GUI Emacs. Yes, there are some ways where things partially work. You can possibly use TRAMP or sshfs, but you&amp;#39;ll eventually run into problems you cannot fix. TRAMP (sometimes) is incredibly slow, and a lot of your tools may not be usable. The latency while using sshfs will gravely affect your workflow.&lt;/p&gt;
+&lt;p&gt;VS Code does a great job at connecting to remote machines by using a client-server model. Although Emacs has such a model, I&amp;#39;ve never gotten something like that to work. I&amp;#39;m very tempted to compare VS Code and Emacs now, but that is a discussion for another day.&lt;/p&gt;
+&lt;h3 id=&quot;pro-infinitely-enhanced-by-tmux&quot;&gt;Pro: Infinitely enhanced by tmux&lt;/h3&gt;
+&lt;p&gt;My workflow heavily relies on tmux, and this is one of the major reasons I can never switch to GUI. tmux is far more than a terminal multiplexer. To me, it&amp;#39;s a very elaborate workspace manager and a session manager.&lt;/p&gt;
+&lt;p&gt;Tmux essentially acts like a cheap window manager for different instances of Emacs. Each Emacs instance corresponds to a separate workspace with dedicated settings. I use tmux to switch between sessions, and Emacs takes care of the rest.&lt;/p&gt;
+&lt;p&gt;Tmux also lets me manage multiple terminals in the same session for different processes I want to run.&lt;/p&gt;
+&lt;p&gt;Tmux is a must when working with remote machines, as it enables persistent sessions. Since I already use tmux, working on remote machines is straightforward.&lt;/p&gt;
+&lt;h2 id=&quot;final-thoughts&quot;&gt;Final Thoughts&lt;/h2&gt;
+&lt;p&gt;This post may seem very opinionated, and that is because it is :-). Some of you may have better and more manageable workflows using GUI Emacs and an elaborate window manager. But using Emacs + tmux is the simplest, non-invasive, and easiest solution to managing Emacs and shells.&lt;/p&gt;
+&lt;p&gt;Feel free to write to me at &lt;a href=&quot;mailto:functional.binder@gmail.com&quot;&gt;functional.binder@gmail.com&lt;/a&gt; with any suggestions or possible improvements to this blog post.&lt;/p&gt;
+</content>
+</entry>
+<entry>
+<title>Auth aware Haskell functions</title>
+<id>https://adithya.cc/posts/haskell/auth-aware-hs-function.html</id>
+<link rel="alternate" href="https://adithya.cc/posts/haskell/auth-aware-hs-function.html"/>
+<updated>2025-09-20T00:00:00.000Z</updated>
+
+<content type="html">&lt;p&gt;I&amp;#39;ve been working on a user management system that needs to have complex yet flexible auth rules. The goal is to reliably inject and review auth (authentication + authorization) rules into endpoints. The most straightforwed solution is consider authentication part of the endpoint logic. While this may work for a smaller application, quickly becomes unmanageable for complex systems.&lt;/p&gt;
+&lt;p&gt;It is much more cleaner to separate the auth from the application. This is already a very common pattern and there are a lot of tools that help you do this. For example, you run a separate policy server on top of our endpoints to create this abstraction.&lt;/p&gt;
+&lt;p&gt;While this is a possible solution this is over-abstration for my use case. I want a more  tightly integrated haskell based auth layer. I will try to describe the auth layer I plan to use for the user management system. How auth is implemented is not what we will be looking at. It is more about how it is structured and injected.&lt;/p&gt;
+&lt;h1 id=&quot;interface&quot;&gt;Interface&lt;/h1&gt;
+&lt;h3 id=&quot;validation&quot;&gt;Validation&lt;/h3&gt;
+&lt;p&gt;There are a few layer through with the input data from a user has to pass though before they get a response. The request input first needs to me sanitised (or validated) for the rest of the application to accept it.&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-haskell&quot;&gt;&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;newtype&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Validated&lt;/span&gt; a = &lt;span class=&quot;hljs-type&quot;&gt;Validated&lt;/span&gt; a&lt;/span&gt;
+
+&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;newtype&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;ValidationError&lt;/span&gt; = &lt;span class=&quot;hljs-type&quot;&gt;ValidationError&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;hljs-keyword&quot;&gt;deriving&lt;/span&gt; (&lt;span class=&quot;hljs-type&quot;&gt;Show&lt;/span&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;ValidationResult&lt;/span&gt; a&lt;/span&gt;
+    = &lt;span class=&quot;hljs-type&quot;&gt;VRFailed&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;ValidationError&lt;/span&gt;
+    | &lt;span class=&quot;hljs-type&quot;&gt;VRPassed&lt;/span&gt; (&lt;span class=&quot;hljs-type&quot;&gt;Validated&lt;/span&gt; a)
+&lt;span class=&quot;hljs-class&quot;&gt;
+&lt;span class=&quot;hljs-keyword&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Validation&lt;/span&gt; a &lt;span class=&quot;hljs-keyword&quot;&gt;where&lt;/span&gt;&lt;/span&gt;
+    validate :: a -&amp;gt; &lt;span class=&quot;hljs-type&quot;&gt;ValidationResult&lt;/span&gt; a
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The type class above provides an abstract interface for validation. For now, it might seem bland but we will go through an example at the end to see how all of this fits togather.&lt;/p&gt;
+&lt;h3 id=&quot;auth&quot;&gt;Auth&lt;/h3&gt;
+&lt;pre&gt;&lt;code class=&quot;language-haskell&quot;&gt;&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;newtype&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Permitted&lt;/span&gt; payload ctx = &lt;span class=&quot;hljs-type&quot;&gt;Permitted&lt;/span&gt; { &lt;span class=&quot;hljs-title&quot;&gt;permittedCtx&lt;/span&gt; :: &lt;span class=&quot;hljs-title&quot;&gt;ctx&lt;/span&gt; }&lt;/span&gt;
+
+&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;newtype&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;PermissionError&lt;/span&gt; = &lt;span class=&quot;hljs-type&quot;&gt;PermissionError&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;hljs-keyword&quot;&gt;deriving&lt;/span&gt; (&lt;span class=&quot;hljs-type&quot;&gt;Show&lt;/span&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;PermitDecision&lt;/span&gt; payload ctx&lt;/span&gt;
+    = &lt;span class=&quot;hljs-type&quot;&gt;PDDenied&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;PermissionError&lt;/span&gt;
+    | &lt;span class=&quot;hljs-type&quot;&gt;PDAllowed&lt;/span&gt; (&lt;span class=&quot;hljs-type&quot;&gt;Permitted&lt;/span&gt; payload ctx)
+&lt;span class=&quot;hljs-class&quot;&gt;
+&lt;span class=&quot;hljs-keyword&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Monad&lt;/span&gt; m =&amp;gt; &lt;span class=&quot;hljs-type&quot;&gt;Auth&lt;/span&gt; m payload &lt;span class=&quot;hljs-keyword&quot;&gt;where&lt;/span&gt;&lt;/span&gt;
+    &lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;AuthContext&lt;/span&gt; payload&lt;/span&gt;
+    permit ::
+        &lt;span class=&quot;hljs-type&quot;&gt;Maybe&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Jwt&lt;/span&gt; -&amp;gt;
+        &lt;span class=&quot;hljs-type&quot;&gt;Validated&lt;/span&gt; payload -&amp;gt;
+        m (&lt;span class=&quot;hljs-type&quot;&gt;PermitDecision&lt;/span&gt; payload (&lt;span class=&quot;hljs-type&quot;&gt;AuthContext&lt;/span&gt; payload))
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This is not as simple as the validation interface but should not be very hard to read. &lt;code&gt;AuthContext&lt;/code&gt; here is interesting though. There is a unique &lt;code&gt;AuthContext&lt;/code&gt; to every endpoint. It is essentially the additional context you want to propagate along with the auth decision. The reason for having this is to not repeat costly functionality. The auth layer may make some costly outbound calls to build the context for making the auth decision. This context may potentially be used later and so we propagate this context.&lt;/p&gt;
+&lt;h3 id=&quot;logic&quot;&gt;Logic&lt;/h3&gt;
+&lt;pre&gt;&lt;code class=&quot;language-haskell&quot;&gt;&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Monad&lt;/span&gt; m =&amp;gt; &lt;span class=&quot;hljs-type&quot;&gt;Logic&lt;/span&gt; m payload &lt;span class=&quot;hljs-keyword&quot;&gt;where&lt;/span&gt;&lt;/span&gt;
+    &lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;LogicResult&lt;/span&gt; payload&lt;/span&gt;
+    logic ::
+        &lt;span class=&quot;hljs-type&quot;&gt;Validated&lt;/span&gt; payload -&amp;gt;
+        &lt;span class=&quot;hljs-type&quot;&gt;Permitted&lt;/span&gt; payload (&lt;span class=&quot;hljs-type&quot;&gt;AuthContext&lt;/span&gt; payload) -&amp;gt;
+        m (&lt;span class=&quot;hljs-type&quot;&gt;LogicResult&lt;/span&gt; payload)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This should be very straightforward to read. It is not hard to see why we we need a &lt;code&gt;LogicResult&lt;/code&gt;. Different endpoints have different outputs.&lt;/p&gt;
+&lt;h3 id=&quot;runner&quot;&gt;Runner&lt;/h3&gt;
+&lt;p&gt;The endpoint is all of these steps combined together.&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-haskell&quot;&gt;&lt;span class=&quot;hljs-title&quot;&gt;runEndpoint&lt;/span&gt; ::
+    &lt;span class=&quot;hljs-keyword&quot;&gt;forall&lt;/span&gt; m payload.
+    ( &lt;span class=&quot;hljs-type&quot;&gt;MonadThrow&lt;/span&gt; m
+    , &lt;span class=&quot;hljs-type&quot;&gt;Validation&lt;/span&gt; payload
+    , &lt;span class=&quot;hljs-type&quot;&gt;Auth&lt;/span&gt; m payload
+    , &lt;span class=&quot;hljs-type&quot;&gt;Logic&lt;/span&gt; m payload
+    ) =&amp;gt;
+    &lt;span class=&quot;hljs-type&quot;&gt;Maybe&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Jwt&lt;/span&gt; -&amp;gt; payload -&amp;gt; m (&lt;span class=&quot;hljs-type&quot;&gt;LogicResult&lt;/span&gt; payload)
+&lt;span class=&quot;hljs-title&quot;&gt;runEndpoint&lt;/span&gt; cs payload0 = &lt;span class=&quot;hljs-keyword&quot;&gt;do&lt;/span&gt;
+    payload &amp;lt;- vresult throwM pure (validate payload0)
+    decision &amp;lt;- permit cs payload
+    &lt;span class=&quot;hljs-keyword&quot;&gt;case&lt;/span&gt; decision &lt;span class=&quot;hljs-keyword&quot;&gt;of&lt;/span&gt;
+        &lt;span class=&quot;hljs-type&quot;&gt;PDDenied&lt;/span&gt; perr -&amp;gt; throwM perr
+        &lt;span class=&quot;hljs-type&quot;&gt;PDAllowed&lt;/span&gt; ctx -&amp;gt; logic payload ctx
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h1 id=&quot;example&quot;&gt;Example&lt;/h1&gt;
+&lt;p&gt;Let&amp;#39;s start with the assumption that a few functions already exist.&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-haskell&quot;&gt;&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;User&lt;/span&gt; = &lt;span class=&quot;hljs-type&quot;&gt;User&lt;/span&gt; { &lt;span class=&quot;hljs-title&quot;&gt;userId&lt;/span&gt; :: &lt;span class=&quot;hljs-type&quot;&gt;Int&lt;/span&gt; }&lt;/span&gt;
+
+&lt;span class=&quot;hljs-title&quot;&gt;getUserFromToken&lt;/span&gt; :: &lt;span class=&quot;hljs-type&quot;&gt;Jwt&lt;/span&gt; -&amp;gt; &lt;span class=&quot;hljs-type&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;User&lt;/span&gt;
+&lt;span class=&quot;hljs-title&quot;&gt;checkRole&lt;/span&gt; :: &lt;span class=&quot;hljs-type&quot;&gt;User&lt;/span&gt; -&amp;gt; &lt;span class=&quot;hljs-type&quot;&gt;Role&lt;/span&gt; -&amp;gt; &lt;span class=&quot;hljs-type&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Bool&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;code&gt;parseJwt&lt;/code&gt; is essentially an authentication check and &lt;code&gt;checkRole&lt;/code&gt; checks if the user has specific role. &lt;code&gt;checkRole&lt;/code&gt; may be part of a very elaborate RBAC system.&lt;/p&gt;
+&lt;p&gt;Let&amp;#39;s assume we have a user information table represented by the type:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-haskell&quot;&gt;&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;ModifiedBy&lt;/span&gt; = &lt;span class=&quot;hljs-type&quot;&gt;Self&lt;/span&gt; | &lt;span class=&quot;hljs-type&quot;&gt;Admin&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Int&lt;/span&gt; | &lt;span class=&quot;hljs-type&quot;&gt;SupportStaff&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Int&lt;/span&gt;&lt;/span&gt;
+
+&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;UserInfo&lt;/span&gt; = &lt;span class=&quot;hljs-type&quot;&gt;UserInfo&lt;/span&gt;&lt;/span&gt;
+    { uiFullName   :: &lt;span class=&quot;hljs-type&quot;&gt;String&lt;/span&gt;
+    , uiModifiedBy :: &lt;span class=&quot;hljs-type&quot;&gt;ModifiedBy&lt;/span&gt;
+    , uiUserId     :: &lt;span class=&quot;hljs-type&quot;&gt;ForeignKey&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;User&lt;/span&gt; &lt;span class=&quot;hljs-comment&quot;&gt;-- ForeignKey User == Int&lt;/span&gt;
+    }
+
+&lt;span class=&quot;hljs-title&quot;&gt;getUserInfo&lt;/span&gt; :: &lt;span class=&quot;hljs-type&quot;&gt;ForeignKey&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;User&lt;/span&gt; -&amp;gt; &lt;span class=&quot;hljs-type&quot;&gt;UserInfo&lt;/span&gt;
+&lt;span class=&quot;hljs-title&quot;&gt;setUserFullName&lt;/span&gt; :: &lt;span class=&quot;hljs-type&quot;&gt;String&lt;/span&gt; -&amp;gt; &lt;span class=&quot;hljs-type&quot;&gt;String&lt;/span&gt; -&amp;gt; &lt;span class=&quot;hljs-type&quot;&gt;ForeignKey&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;User&lt;/span&gt; -&amp;gt; &lt;span class=&quot;hljs-type&quot;&gt;IO&lt;/span&gt; ()
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Our system allows &lt;code&gt;uiFullName&lt;/code&gt; to be modified by:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;The user themselves&lt;/li&gt;
+&lt;li&gt;The admin&lt;/li&gt;
+&lt;li&gt;The support staff that manages the user&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;From the type we can also see that our syetem tracks who edited the info.&lt;/p&gt;
+&lt;p&gt;The support staff information may look like the following:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-haskell&quot;&gt;&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;SupportStaffAssignments&lt;/span&gt; = &lt;span class=&quot;hljs-type&quot;&gt;SupportStaffAssignments&lt;/span&gt;&lt;/span&gt;
+    { ssStaffId    :: &lt;span class=&quot;hljs-type&quot;&gt;ForeignKey&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;User&lt;/span&gt;   &lt;span class=&quot;hljs-comment&quot;&gt;-- ForeignKey User == Int&lt;/span&gt;
+    , ssAssignedTo :: [&lt;span class=&quot;hljs-type&quot;&gt;ForeignKey&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;User&lt;/span&gt;] &lt;span class=&quot;hljs-comment&quot;&gt;-- ForeignKey User == Int&lt;/span&gt;
+    }
+
+&lt;span class=&quot;hljs-title&quot;&gt;getSupportStaff&lt;/span&gt; :: &lt;span class=&quot;hljs-type&quot;&gt;ForeignKey&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;User&lt;/span&gt; -&amp;gt; &lt;span class=&quot;hljs-type&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;SupportStaffAssignments&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Additionally, let&amp;#39;s also assume that the full name always needs to be &lt;code&gt;&amp;lt;= 40&lt;/code&gt; characters.&lt;/p&gt;
+&lt;h3 id=&quot;endpoint-implementation&quot;&gt;Endpoint Implementation&lt;/h3&gt;
+&lt;p&gt;With that context our endpoint would look like the following:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-haskell&quot;&gt;&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;UdpateFullNameEndpoint&lt;/span&gt; = &lt;span class=&quot;hljs-type&quot;&gt;UdpateFullNameEndpoint&lt;/span&gt;&lt;/span&gt;
+    { ufneNewFullName :: &lt;span class=&quot;hljs-type&quot;&gt;String&lt;/span&gt;
+    , ufneTargetUser  :: &lt;span class=&quot;hljs-type&quot;&gt;ForeignKey&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;User&lt;/span&gt;
+    }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;We can start by implementing the logic first. The logic should be very simple and straightforward. And since we know &lt;code&gt;Logic&lt;/code&gt; is only executed after &lt;code&gt;Validation&lt;/code&gt; and &lt;code&gt;Auth&lt;/code&gt;, we are confident about the input and the permissions.&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-haskell&quot;&gt;&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;instance&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Logic&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;UdpateFullNameEndpoint&lt;/span&gt; &lt;span class=&quot;hljs-keyword&quot;&gt;where&lt;/span&gt;&lt;/span&gt;
+    &lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;LogicResult&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;UdpateFullNameEndpoint&lt;/span&gt; = ()&lt;/span&gt;
+    logic (&lt;span class=&quot;hljs-type&quot;&gt;Validated&lt;/span&gt; (&lt;span class=&quot;hljs-type&quot;&gt;UdpateFullNameEndpoint&lt;/span&gt;{..})) (&lt;span class=&quot;hljs-type&quot;&gt;Permitted&lt;/span&gt; modifiedBy) =
+        setUserFullName ufneNewFullName ufneTargetUser modifiedBy
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The validation would look like:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-haskell&quot;&gt;&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;instance&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Validation&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;UdpateFullNameEndpoint&lt;/span&gt; &lt;span class=&quot;hljs-keyword&quot;&gt;where&lt;/span&gt;&lt;/span&gt;
+    validate val =
+        &lt;span class=&quot;hljs-keyword&quot;&gt;if&lt;/span&gt; length (ufneNewFullName val) &amp;lt;= &lt;span class=&quot;hljs-number&quot;&gt;40&lt;/span&gt;
+        &lt;span class=&quot;hljs-keyword&quot;&gt;then&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;VRPassed&lt;/span&gt; (&lt;span class=&quot;hljs-type&quot;&gt;Validated&lt;/span&gt; val)
+        &lt;span class=&quot;hljs-keyword&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;VRFailed&lt;/span&gt; (&lt;span class=&quot;hljs-type&quot;&gt;ValidationError&lt;/span&gt; &lt;span class=&quot;hljs-string&quot;&gt;&amp;quot;Name is &amp;gt; 40 characters.&amp;quot;&lt;/span&gt;)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The auth is a little more elaborate because of our requirements:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-haskell&quot;&gt;&lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;instance&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Auth&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;IO&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;UdpateFullNameEndpoint&lt;/span&gt; &lt;span class=&quot;hljs-keyword&quot;&gt;where&lt;/span&gt;&lt;/span&gt;
+    &lt;span class=&quot;hljs-class&quot;&gt;&lt;span class=&quot;hljs-keyword&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;AuthContext&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;UdpateFullNameEndpoint&lt;/span&gt; = &lt;span class=&quot;hljs-type&quot;&gt;ModifiedBy&lt;/span&gt;&lt;/span&gt;
+    permit (&lt;span class=&quot;hljs-type&quot;&gt;Just&lt;/span&gt; jwt) (&lt;span class=&quot;hljs-type&quot;&gt;Validated&lt;/span&gt; val) = &lt;span class=&quot;hljs-keyword&quot;&gt;do&lt;/span&gt;
+        actor &amp;lt;- getUserFromToken jwt
+        &lt;span class=&quot;hljs-keyword&quot;&gt;let&lt;/span&gt; actorId = userId actor
+            targetUserId = ufneTargetUser val
+        &lt;span class=&quot;hljs-keyword&quot;&gt;if&lt;/span&gt; actorId == targetUserId
+        &lt;span class=&quot;hljs-keyword&quot;&gt;then&lt;/span&gt; pure $ &lt;span class=&quot;hljs-type&quot;&gt;PDAllowed&lt;/span&gt; $ &lt;span class=&quot;hljs-type&quot;&gt;Permitted&lt;/span&gt; &lt;span class=&quot;hljs-type&quot;&gt;Self&lt;/span&gt;
+        &lt;span class=&quot;hljs-keyword&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;hljs-keyword&quot;&gt;do&lt;/span&gt;
+            isAdmin &amp;lt;- checkRole actor &lt;span class=&quot;hljs-string&quot;&gt;&amp;quot;admin&amp;quot;&lt;/span&gt;
+            &lt;span class=&quot;hljs-keyword&quot;&gt;if&lt;/span&gt; isAdmin
+            &lt;span class=&quot;hljs-keyword&quot;&gt;then&lt;/span&gt; pure $ &lt;span class=&quot;hljs-type&quot;&gt;PDAllowed&lt;/span&gt; $ &lt;span class=&quot;hljs-type&quot;&gt;Permitted&lt;/span&gt; $ &lt;span class=&quot;hljs-type&quot;&gt;Admin&lt;/span&gt; uid
+            &lt;span class=&quot;hljs-keyword&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;hljs-keyword&quot;&gt;do&lt;/span&gt;
+                isSupportStaff  &amp;lt;- checkRole actor &lt;span class=&quot;hljs-string&quot;&gt;&amp;quot;support_staff&amp;quot;&lt;/span&gt;
+                &lt;span class=&quot;hljs-keyword&quot;&gt;if&lt;/span&gt; isSupportStaff
+                &lt;span class=&quot;hljs-keyword&quot;&gt;then&lt;/span&gt; &lt;span class=&quot;hljs-keyword&quot;&gt;do&lt;/span&gt;
+                    staffVal &amp;lt;- getSupportStaff actorId
+                    &lt;span class=&quot;hljs-keyword&quot;&gt;if&lt;/span&gt; ssAssignedTo staffVal `elem` targetUserId
+                    &lt;span class=&quot;hljs-keyword&quot;&gt;then&lt;/span&gt; pure $ &lt;span class=&quot;hljs-type&quot;&gt;PDAllowed&lt;/span&gt; $ &lt;span class=&quot;hljs-type&quot;&gt;Permitted&lt;/span&gt; $ &lt;span class=&quot;hljs-type&quot;&gt;SupportStaff&lt;/span&gt; uid
+                    &lt;span class=&quot;hljs-keyword&quot;&gt;else&lt;/span&gt; pure $ &lt;span class=&quot;hljs-type&quot;&gt;PDDenied&lt;/span&gt;
+                &lt;span class=&quot;hljs-keyword&quot;&gt;else&lt;/span&gt; pure $ &lt;span class=&quot;hljs-type&quot;&gt;PDDenied&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;I hope you&amp;#39;re able to see the power of our simple abstractions. Our complete endpoint is essentially 3 different abstaract parts that play well together. We can organize and manage these parts independently which make updating and reviewing a lot more easier.&lt;/p&gt;
+&lt;p&gt;Out Auth layer is quite complex. It integrates both ABAC and RBAC while not explicitly differentiating between those. It may be a a good idea to break the auth layer further but at the moment, I don&amp;#39;t see a good reason to do that. This simple abstraction should work for a majority of use-cases while keeping things managable.&lt;/p&gt;
+</content>
+</entry>
+<entry>
+<title>Workflow for Collaboration</title>
+<id>https://adithya.cc/posts/misc/collab-workflow.html</id>
+<link rel="alternate" href="https://adithya.cc/posts/misc/collab-workflow.html"/>
+<updated>2024-06-03T00:00:00.000Z</updated>
+
+<content type="html">&lt;p&gt;Collaboration is not a simple process. It isn’t always natural, but over time, through working with different kinds of people, it becomes more intuitive.&lt;/p&gt;
+&lt;p&gt;This write-up briefly describes how I choose to collaborate with others.&lt;/p&gt;
+&lt;p&gt;My process is by no means the best - it’s simply what works for me. At the end of the day, if you have a process that yields good results, you shouldn&amp;#39;t feel pressured to change it.&lt;/p&gt;
+&lt;p&gt;Collaboration is essentially about communicating your thoughts clearly and concisely while leaving room for modification based on others&amp;#39; input.&lt;/p&gt;
+&lt;h3 id=&quot;establishing-the-context&quot;&gt;Establishing the context&lt;/h3&gt;
+&lt;p&gt;To initiate a discussion with someone, you first need to establish context. The context should be comprehensive enough for a reasonable newcomer to understand.&lt;/p&gt;
+&lt;p&gt;The best way to create this context is through a text document, as it allows collaborators to read and revisit the information at their own pace. Most importantly, it’s convenient. Writing and sharing a text document is relatively simple compared to other methods. Additionally, a well-prepared document encourages asynchronous work.&lt;/p&gt;
+&lt;h3 id=&quot;updating-the-discussion&quot;&gt;Updating the discussion&lt;/h3&gt;
+&lt;p&gt;The next step is discussion based on the shared context. This discussion will bring new insights, making some of the original context outdated while introducing new ideas that should be incorporated.&lt;/p&gt;
+&lt;p&gt;You should update the document accordingly, preserving all relevant information. Any changes resulting from the discussion should be tracked, and a history of these modifications should be maintained.&lt;/p&gt;
+&lt;p&gt;This step may need to be iterated upon multiple times until all the parties involved are satisfied.&lt;/p&gt;
+&lt;h3 id=&quot;freezing-the-document&quot;&gt;Freezing the document&lt;/h3&gt;
+&lt;p&gt;Once all the parties involved are on the same page, the final step is to define a clear set of tasks that will conclude the context and discussion. After updating the document with these tasks, the document should be frozen. Any additional changes proposed after freezing the document should probably go into the next discussion.&lt;/p&gt;
+&lt;h3 id=&quot;final-thoughts&quot;&gt;Final Thoughts&lt;/h3&gt;
+&lt;p&gt;There’s one more step that must be present throughout the entire process: discipline. It’s easy to get ahead of ourselves and resort to quick, half-baked communication for immediate responses. However, that approach is rarely effective. Developing discipline in collaboration takes time, just like any other habit.&lt;/p&gt;
+&lt;p&gt;I’ve grown fond of Notion because it offers many of the features I need. Most importantly, it makes editing text and discussing specific parts of a document convenient.&lt;/p&gt;
+&lt;p&gt;I also want to experiment with using a GitHub repository for storing documents and enabling discussions through comments on specific commits. I’ll share my thoughts on that workflow once I’ve had enough experience with it.&lt;/p&gt;
+</content>
+</entry>
+</feed>

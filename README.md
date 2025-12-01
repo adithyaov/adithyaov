@@ -1,7 +1,11 @@
+# README
 
-See: https://jaredkrinke.github.io/md2blog/index.html
-
-Example usage:
+Enter the shell
 ```
-~/.bin/md2blog-arm-darwin/md2blog -o ../../adithyaov
+nix develop
+```
+
+Build the website
+```
+cabal run site -- rebuild
 ```

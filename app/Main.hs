@@ -76,9 +76,15 @@ hakyllMain = hakyllWith config $ do
         compile $ pandocCompiler
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
 
+    match "CNAME" $ do
+        route idRoute
+        compile copyFileCompiler
+
 main :: IO ()
 main = do
-  postsDir <- takeWhile (/= '\n') <$> readFile "private/posts-dir.path"
-  Cmd.toStdout [str|rm -r ./posts|]
-  Cmd.toStdout [str|cp -r #{postsDir} ./posts|]
-  hakyllMain
+    postsDir <- takeWhile (/= '\n') <$> readFile "private/posts-dir.path"
+    cmd [str|rm -r ./posts|]
+    cmd [str|cp -r #{postsDir} ./posts|]
+    hakyllMain
+  where
+    cmd x = putStrLn x >> Cmd.toStdout x

@@ -1,7 +1,6 @@
-out
-dist-newstyle
-_site
-_cache
-.DS_Store
-private
-posts
+/dist-newstyle/
+/_site/
+/_cache/
+/.DS_Store
+/private/
+/posts/

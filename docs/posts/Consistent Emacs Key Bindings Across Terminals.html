@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+
+        <title>Adithya Kumar - Consistent Emacs Key Bindings Across Terminals</title>
+
+        <!-- Stylesheets. -->
+        <link rel="stylesheet" href="../css/normalize.css">
+        <link rel="stylesheet" href="../css/new.min.css">
+
+        <!-- Metadata. -->
+        <meta name="keywords" content="Adithya Kumar,blog,programming,coding,haskell,function,personal,homepage">
+        <meta name="description" content="Personal home page and blog of Adithya Kumar.">
+        <meta property="og:title" content="Adithya Kumar - Consistent Emacs Key Bindings Across Terminals" />
+
+        <style>
+            .meta {
+                color: #5b6b73;
+                margin-bottom: 1rem;
+            }
+        </style>
+
+    </head>
+    <body>
+        <header style="text-align: center">
+            <h3>Adithya Kumar</h3>
+            <nav>
+                <a href="../">Home</a>
+                ·
+                <a href="https://github.com/adithyaov">Github</a>
+            </nav>
+        </header>
+
+        <main>
+            <div>
+    <h1>Consistent Emacs Key Bindings Across Terminals</h1>
+    <div class="meta">2025-11-02</div>
+    <p>I’ve always enjoyed using applications that run directly inside the terminal. Terminal apps are fast, simple, and usually require very few dependencies. They also work beautifully with other command-line tools like tmux, ssh workflows, and even remote machines. Once you get comfortable living in the terminal, it becomes hard to go back to anything else.</p>
+<p>For the past five years, <strong>Emacs has been at the center of this workflow</strong>, running inside my terminal almost every day. But there has always been one annoying part of this setup: getting keybindings to behave consistently.</p>
+<p>Themes can be a bit tricky too, but at least they <em>mostly</em> work. Keybindings, on the other hand, are where terminals love to surprise you.</p>
+<h2 id="why-keybindings-break-in-the-terminal">Why Keybindings Break in the Terminal?</h2>
+<p>Graphical Emacs receives key events directly from the operating system. Terminal Emacs does not. Instead, the terminal emulator acts as a middle layer: you press a key -&gt; the terminal translates it into some escape sequence -&gt; Emacs tries to interpret that sequence.</p>
+<p>This works for many keys, but not for all. Terminals vary widely in how they translate key presses. Some keys simply never make it through in a meaningful way.</p>
+<p>As a result, certain key combinations do not work out of the box. In my setup, these fail by default:</p>
+<ul>
+<li><code>M-O</code></li>
+<li><code>C-&lt;return&gt;</code><br />
+</li>
+<li><code>C-/</code></li>
+</ul>
+<p>Sometimes the terminal doesn’t send the key at all. Sometimes it sends something Emacs cannot understand. And sometimes… the terminal simply invents its own idea of what the key <em>should</em> be.</p>
+<h2 id="my-compatibility-layer-in-emacs">My Compatibility Layer in Emacs</h2>
+<p>To deal with this, I use a small compatibility layer in Emacs. The idea is simple:</p>
+<ol type="1">
+<li>Pick a prefix key that the terminal reliably sends.</li>
+<li>Translate that prefix + a custom key into the real keybinding I want.</li>
+</ol>
+<p>Here is the snippet I use:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode lisp"><code class="sourceCode commonlisp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">defun</span><span class="fu"> configure-compatibility </span>()</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  (define-key key-translation-map (kbd <span class="st">&quot;C-c c u&quot;</span>) (kbd <span class="st">&quot;C-/&quot;</span>))</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  (define-key key-translation-map (kbd <span class="st">&quot;C-c c e&quot;</span>) (kbd <span class="st">&quot;C-&lt;return&gt;&quot;</span>))</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  (define-key key-translation-map (kbd <span class="st">&quot;C-c c o&quot;</span>) (kbd <span class="st">&quot;M-O&quot;</span>)))</span></code></pre></div>
+<p>I chose <code>C-c c</code> because it reliably passes through the terminal without getting mangled. But any prefix that works for your setup is fine.</p>
+<p>This gives Emacs a predictable “language” for problematic keys.</p>
+<h2 id="translating-keys-at-the-os-level">Translating Keys at the OS Level</h2>
+<p>The second piece of the puzzle is teaching the operating system to convert the <em>real</em> keypress into the custom prefix sequence.</p>
+<p>Different platforms have different tools for this:</p>
+<ul>
+<li><strong>Windows</strong> → AutoHotkey</li>
+<li><strong>Linux</strong> → Kmonad</li>
+<li><strong>macOS</strong> → Karabiner</li>
+</ul>
+<p>These tools capture raw keystrokes and remap them before they ever reach the terminal. So, for example:</p>
+<ul>
+<li>When I press <code>C-/</code>, the system actually sends <code>C-c c u</code></li>
+<li>When I press <code>C-&lt;return&gt;</code>, it sends <code>C-c c e</code></li>
+</ul>
+<p>Emacs sees a clean, consistent input regardless of what the terminal does.</p>
+<h2 id="final-thoughts">Final Thoughts</h2>
+<p>If you use Emacs deeply, you probably depend on muscle memory. A keybinding that works in one terminal but not another can break your entire flow. With this approach gives you have consistent bindings across all terminals. It’s a simpler, more predictable configuration for key bindings.</p>
+<p>It also helps you avoid the endless debugging cycle of:<br />
+“Is this Emacs? My terminal? My OS? My tmux? Something else entirely?”</p>
+<p>If you’re someone who lives in the terminal, especially across multiple environments, this little bit of setup can make a huge difference.</p>
+</div>
+
+        </main>
+
+        <footer>
+            <hr />
+            <p>
+                Site proudly generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+                and styled by <a href="https://newcss.net/">New</a>.
+            </p>
+        </footer>
+    </body>
+</html>

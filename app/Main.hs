@@ -11,6 +11,7 @@ module Main (main) where
 -- Imports
 --------------------------------------------------------------------------------
 
+import Control.Monad (filterM)
 import Streamly.Unicode.String (str)
 import qualified Streamly.Internal.System.Command as Cmd
 import Hakyll
@@ -31,6 +32,15 @@ config =
 
 postCtx :: Context String
 postCtx = defaultContext <> dateField "date" "%B %e, %Y"
+
+isDraft :: Identifier -> Compiler Bool
+isDraft ident = do
+  meta <- getMetadata ident
+  pure $
+       case lookupString "draft" meta of
+           Just "true" -> True
+           Just "True" -> True
+           _ -> False
 
 --------------------------------------------------------------------------------
 -- Main
@@ -58,7 +68,10 @@ hakyllMain = hakyllWith config $ do
     create [ "index.html" ] $ do
         route idRoute
         compile $ do
-            posts <- recentFirst =<< loadAll "posts/*"
+            posts <-
+                loadAll "posts/*"
+                    >>= filterM (fmap not . isDraft . itemIdentifier)
+                    >>= recentFirst
             let ctx = constField "title" "Index" <>
                       listField "posts" postCtx (return posts) <>
                       defaultContext

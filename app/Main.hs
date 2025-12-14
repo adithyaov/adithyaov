@@ -96,7 +96,7 @@ hakyllMain = hakyllWith config $ do
 main :: IO ()
 main = do
     postsDir <- takeWhile (/= '\n') <$> readFile "private/posts-dir.path"
-    cmd [str|rm -r ./posts|]
+    cmd [str|rm -rf ./posts|]
     cmd [str|cp -r #{postsDir} ./posts|]
     hakyllMain
   where

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+
+        <title>Adithya Kumar - Modelling Trust Boundaries in a Haskell Service</title>
+
+        <!-- Stylesheets. -->
+        <link rel="stylesheet" href="../css/normalize.css">
+        <link rel="stylesheet" href="../css/new.min.css">
+
+        <!-- Metadata. -->
+        <meta name="keywords" content="Adithya Kumar,blog,programming,coding,haskell,function,personal,homepage">
+        <meta name="description" content="Personal home page and blog of Adithya Kumar.">
+        <meta property="og:title" content="Adithya Kumar - Modelling Trust Boundaries in a Haskell Service" />
+
+        <style>
+            .meta {
+                color: #5b6b73;
+                margin-bottom: 1rem;
+            }
+        </style>
+
+    </head>
+    <body>
+        <header style="text-align: center">
+            <h3>Adithya Kumar</h3>
+            <nav>
+                <a href="../">Home</a>
+                ·
+                <a href="https://github.com/adithyaov">Github</a>
+            </nav>
+        </header>
+
+        <main>
+            <div>
+    <h1>Modelling Trust Boundaries in a Haskell Service</h1>
+    <div class="meta">2025-09-20</div>
+    <p>Any service that accepts arbitrary input needs to pass that input through a series of checks before running its core logic. A very common example of such a service is an HTTP server.</p>
+<p>There are 2 recurring layers of checks in almost every system:</p>
+<ol type="1">
+<li><strong>Validation (Sanitization)</strong>: Is the input data in the expected shape?</li>
+<li><strong>Authorization</strong>: Are you allowed to do this?</li>
+</ol>
+<p>The goal of this post is to model these layers so that they can be verified, reasoned about, and reviewed independently - without having to understand the entire system at once.</p>
+<h2 id="validation">Validation</h2>
+<p>The first step in establishing trust is checking whether the data sent by the client is in the correct form. Before the rest of the application can safely operate on the input, it must be sanitised (or validated).</p>
+<p>We will model this using a <code>Validation</code> type class.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Validated</span> a <span class="ot">=</span> <span class="dt">Validated</span> a</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">ValidationError</span> <span class="ot">=</span> <span class="dt">ValidationError</span> <span class="dt">String</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">deriving</span> (<span class="dt">Show</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">ValidationResult</span> a</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="ot">=</span> <span class="dt">VRFailed</span> <span class="dt">ValidationError</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> <span class="dt">VRPassed</span> (<span class="dt">Validated</span> a)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Validation</span> a <span class="kw">where</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="ot">    validate ::</span> a <span class="ot">-&gt;</span> <span class="dt">ValidationResult</span> a</span></code></pre></div>
+<p>The key invariant here is simple but powerful:</p>
+<blockquote>
+<p>If the application ever sees a value of type <code>Validated a</code>, then it can trust that the data represented by <code>a</code> has already been checked and is in a valid shape.</p>
+</blockquote>
+<p>This allows us to make invalid states unrepresentable beyond this point.</p>
+<h2 id="authorization">Authorization</h2>
+<p>The next step in the chain of trust is authorization. Strictly speaking, authentication should come first, but authentication is a prerequisite for the authorization layer we are about to design, so we model them together.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Permitted</span> payload ctx <span class="ot">=</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Permitted</span> {<span class="ot"> permittedCtx ::</span> ctx }</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">PermissionError</span> <span class="ot">=</span> <span class="dt">PermissionError</span> <span class="dt">String</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">deriving</span> (<span class="dt">Show</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">PermitDecision</span> payload ctx</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="ot">=</span> <span class="dt">PDDenied</span> <span class="dt">PermissionError</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">|</span> <span class="dt">PDAllowed</span> (<span class="dt">Permitted</span> payload ctx)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Auth</span> m payload <span class="kw">where</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">type</span> <span class="dt">AuthContext</span> payload</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="ot">    permit ::</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">Maybe</span> <span class="dt">User</span> <span class="ot">-&gt;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">Validated</span> payload <span class="ot">-&gt;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        m (<span class="dt">PermitDecision</span> payload (<span class="dt">AuthContext</span> payload))</span></code></pre></div>
+<p>This type class is slightly more involved.</p>
+<p>The associated type <code>AuthContext</code> is part of the <code>Auth</code> type class, which is possible because Haskell supports type families. The entire authorization machinery is tied to the input type <code>payload</code>. Each <code>payload</code> gets to define its own <code>AuthContext</code>.</p>
+<p>The idea behind <code>AuthContext</code> is that authorization often requires building some context - perhaps by querying a database or calling an external service. Constructing this context may be expensive, and it is often needed later by the business logic. Instead of recomputing or discarding it, we carry it forward in a type-safe way.</p>
+<p>The <code>Maybe User</code> argument represents authentication. We assume that there exists some mechanism that attempts to extract user identity information from the request and produces a <code>User</code> if successful. <code>Nothing</code> indicates that no user identity could be established - for example, when an HTTP request has no cookies or authorization headers.</p>
+<p>One crucial property of this design is that authorization can be performed <strong>if and only if</strong> validation has already succeeded. This enforces a strict flow of trust through the system.</p>
+<h2 id="logic">Logic</h2>
+<p>Now let’s tie the validation and authorization layers into the logic layer.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Logic</span> m payload <span class="kw">where</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">type</span> <span class="dt">LogicResult</span> payload</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ot">    logic ::</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">Validated</span> payload <span class="ot">-&gt;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">Permitted</span> payload (<span class="dt">AuthContext</span> payload) <span class="ot">-&gt;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        m (<span class="dt">LogicResult</span> payload)</span></code></pre></div>
+<p>At this point, the logic layer can rely on two guarantees:</p>
+<ol type="1">
+<li>The input data has been validated.</li>
+<li>Authorization has succeeded.</li>
+</ol>
+<p>As with <code>AuthContext</code>, the <code>LogicResult</code> is parameterized by <code>payload</code> because different endpoints naturally produce different results.</p>
+<h2 id="runner">Runner</h2>
+<p>Putting everything together, we can define a generic endpoint runner:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">runEndpoint ::</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">forall</span> m payload<span class="op">.</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    ( <span class="dt">MonadThrow</span> m</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    , <span class="dt">Validation</span> payload</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    , <span class="dt">Auth</span> m payload</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    , <span class="dt">Logic</span> m payload</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    ) <span class="ot">=&gt;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Maybe</span> <span class="dt">User</span> <span class="ot">-&gt;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    payload <span class="ot">-&gt;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    m (<span class="dt">LogicResult</span> payload)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>runEndpoint user payload0 <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    payload <span class="ot">&lt;-</span> vresult throwM <span class="fu">pure</span> (validate payload0)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    decision <span class="ot">&lt;-</span> permit user payload</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">case</span> decision <span class="kw">of</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">PDDenied</span> perr <span class="ot">-&gt;</span> throwM perr</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">PDAllowed</span> ctx <span class="ot">-&gt;</span> logic payload ctx</span></code></pre></div>
+<p>This function clearly expresses the intended flow:</p>
+<ol type="1">
+<li>Validate the input.</li>
+<li>Authorize the request.</li>
+<li>Run the business logic.</li>
+</ol>
+<p>Each step is isolated, explicit, and independently testable.</p>
+<h2 id="example-creating-a-blog-comment">Example: Creating a Blog Comment</h2>
+<p>Consider a simple blog platform where users can leave comments on posts.</p>
+<h4 id="rules">Rules</h4>
+<ol type="1">
+<li>A comment body must be non-empty and at most 500 characters.</li>
+<li>Only logged-in users can comment.</li>
+<li>Users who are banned may still log in, but are not allowed to post comments.</li>
+</ol>
+<h4 id="domain-types">Domain Types</h4>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">User</span> <span class="ot">=</span> <span class="dt">User</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    {<span class="ot"> userId ::</span> <span class="dt">Int</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">PostId</span> <span class="ot">=</span> <span class="dt">PostId</span> <span class="dt">Int</span></span></code></pre></div>
+<p>We assume that some user-related information lives in the database.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ot">isUserBanned ::</span> <span class="dt">User</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Bool</span></span></code></pre></div>
+<h4 id="endpoint-payload">Endpoint Payload</h4>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">CreateComment</span> <span class="ot">=</span> <span class="dt">CreateComment</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    {<span class="ot"> ccPostId ::</span> <span class="dt">PostId</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    ,<span class="ot"> ccBody   ::</span> <span class="dt">String</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    }</span></code></pre></div>
+<h4 id="logic-1">Logic</h4>
+<p>The logic layer is intentionally boring.
+It does not perform validation or authorization checks—it relies entirely on the types.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">createComment ::</span> <span class="dt">User</span> <span class="ot">-&gt;</span> <span class="dt">PostId</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Logic</span> <span class="dt">IO</span> <span class="dt">CreateComment</span> <span class="kw">where</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">type</span> <span class="dt">LogicResult</span> <span class="dt">CreateComment</span> <span class="ot">=</span> ()</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    logic</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        (<span class="dt">Validated</span> <span class="dt">CreateComment</span>{<span class="op">..</span>})</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        (<span class="dt">Permitted</span> user) <span class="ot">=</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>            createComment user ccPostId ccBody</span></code></pre></div>
+<p>At this point we <em>know</em>:</p>
+<ul>
+<li>The comment body is valid.</li>
+<li>The user is authenticated.</li>
+<li>The user is allowed to comment.</li>
+</ul>
+<h4 id="validation-1">Validation</h4>
+<p>Validation checks only the <em>shape</em> of the input.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Validation</span> <span class="dt">CreateComment</span> <span class="kw">where</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    validate val</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">|</span> <span class="fu">null</span> (ccBody val) <span class="ot">=</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>            <span class="dt">VRFailed</span> (<span class="dt">ValidationError</span> <span class="st">&quot;Comment cannot be empty&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">|</span> <span class="fu">length</span> (ccBody val) <span class="op">&gt;</span> <span class="dv">500</span> <span class="ot">=</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">VRFailed</span> (<span class="dt">ValidationError</span> <span class="st">&quot;Comment is too long&quot;</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>            <span class="dt">VRPassed</span> (<span class="dt">Validated</span> val)</span></code></pre></div>
+<p>No user information is needed here, and no I/O is performed.</p>
+<h4 id="authorization-1">Authorization</h4>
+<p>Authorization answers the question: <em>is this user allowed to perform this action?</em></p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Auth</span> <span class="dt">IO</span> <span class="dt">CreateComment</span> <span class="kw">where</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">type</span> <span class="dt">AuthContext</span> <span class="dt">CreateComment</span> <span class="ot">=</span> <span class="dt">User</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    permit <span class="dt">Nothing</span> _ <span class="ot">=</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">pure</span> <span class="op">$</span> <span class="dt">PDDenied</span> (<span class="dt">PermissionError</span> <span class="st">&quot;Login required&quot;</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    permit (<span class="dt">Just</span> user) _ <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        banned <span class="ot">&lt;-</span> isUserBanned user</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> banned</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">then</span> <span class="fu">pure</span> <span class="op">$</span> <span class="dt">PDDenied</span> (<span class="dt">PermissionError</span> <span class="st">&quot;User is banned&quot;</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span> <span class="fu">pure</span> <span class="op">$</span> <span class="dt">PDAllowed</span> (<span class="dt">Permitted</span> user)</span></code></pre></div>
+<p>This step is allowed to:</p>
+<ul>
+<li>Perform I/O</li>
+<li>Query the database</li>
+<li>Build context that will be reused by the logic layer</li>
+</ul>
+<h2 id="final-thoughts">Final Thoughts</h2>
+<p>This example closely mirrors real-world systems:</p>
+<ul>
+<li><strong>Validation</strong>: “Is the comment text reasonable?”</li>
+<li><strong>Authorization</strong>: “Is this user allowed to comment?”</li>
+</ul>
+<p>Most importantly, the business logic never re-checks these conditions. The type system guarantees that by the time <code>logic</code> runs, all trust boundaries have already been crossed.</p>
+<p>This keeps the logic simple, predictable, and hard to misuse - exactly the goal of separating validation, authorization, and logic into explicit layers. These layers can evolve independently, making the system easier to maintain, review, and extend over time.</p>
+</div>
+
+        </main>
+
+        <footer>
+            <hr />
+            <p>
+                Site proudly generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+                and styled by <a href="https://newcss.net/">New</a>.
+            </p>
+        </footer>
+    </body>
+</html>

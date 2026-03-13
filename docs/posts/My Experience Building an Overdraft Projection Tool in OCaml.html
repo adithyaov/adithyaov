@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Adithya Kumar - My Experience Building an Overdraft Projection Tool in OCaml</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../css/normalize.css" />
+        <link rel="stylesheet" href="../css/style.css" />
+    </head>
+    <body>
+        <div class="container">
+
+            <header class="site-header">
+                <h1 class="site-title">
+                    <a href="../">Adithya Kumar</a>
+                </h1>
+
+                <nav class="site-nav">
+                    <ul>
+                        <li><a href="../">Posts</a></li>
+                        <li><a href="https://github.com/adithyaov">Github</a></li>
+                    </ul>
+                </nav>
+            </header>
+
+            <main>
+                <article>
+    <h1 class="post-title">My Experience Building an Overdraft Projection Tool in OCaml</h1>
+    <div class="post-meta">
+        2026-03-14
+    </div>
+
+    <div class="post-content">
+        <p>I’ve wanted to write OCaml for a long time. In my experience, the best way to learn a new language is simply to <em>use it</em>. Unfortunately, “just use it” is often easier said than done.</p>
+<p>When the goal is merely to try out a language, I often end up inventing a project purely as an excuse to use it. In hindsight, this is usually a poor motivation for learning anything.</p>
+<p>Fortunately, this time I had a real problem to solve.</p>
+<p>I’ve been wanting an accounting system to track corporate bonds. However, the mental model I have in mind doesn’t fit well with the accounting tools I’ve seen so far. I blame myself for having a very specific interface in mind instead of adapting to existing tools.</p>
+<p>That said, we now have a concrete problem to solve, and therefore the perfect excuse to finally start writing some OCaml :-)</p>
+<h2 id="what-are-we-trying-to-solve">What are we trying to solve</h2>
+<p>What I’m trying to design is a simple overdraft accounting system. I invest in corporate bonds where the interest is paid out monthly. The borrowers, however, can choose to skip payments during rough months, in which case the interest accrued is compounded at a penalty rate.</p>
+<p>I am also an avid user of Emacs and Org mode. I want to maintain the overdraft system in the following way:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode org"><code class="sourceCode orgmode"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">* Alice</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#+NAME: principal</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>|       Date | Amount    | Rate | Comments |</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>|------------+-----------+------+----------|</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>| 2025-03-04 | 35,00,000 |   10 |          |</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>| 2025-06-04 | 35,00,000 |   10 |          |</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>| 2025-09-04 | 32,50,000 |   12 |          |</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>| 2026-01-05 | 5,00,000  |   12 |          |</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="pp">#+NAME: interest</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>|       Date | Amount   | Comments |</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>|------------+----------+----------|</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>| 2025-03-05 | 29,166   |          |</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>| 2025-04-05 | 29,166   |          |</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>| 2025-05-05 | 29,166   |          |</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>| 2025-06-05 | 58,333   |          |</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>| 2025-07-05 | 18,333   |          |</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>| 2025-12-05 | 5,77,513 |          |</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>| 2026-01-05 | 95,833   |          |</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="fu">* Bob</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="pp">#+NAME: principal</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>|       Date | Amount   | Rate | Comments |</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>|------------+----------+------+----------|</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>| 2026-03-02 | 5,00,000 |   10 |          |</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>| 2026-03-04 | -10,000  |   10 |          |</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="pp">#+NAME: interest</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>|       Date | Amount | Comments |</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>|------------+--------+----------|</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>| 2026-03-04 | 1,500  |          |</span></code></pre></div>
+<p>It’s simple, straightforward, and easy to read. The structure for each user will always be the same.</p>
+<p>I want a tool called <code>overdraft-render</code> that will help me visualise this file in more detail.</p>
+<pre><code>&gt; overdraft-render loans.org
+
+# Alice
+
+  Date     │  Bal @ 10%  │  Bal @ 12%  │  Bal          │  Int @ 10%  │  Int @ 12%  │  Int     │  Paid      │  Due
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2025-03  │  35,00,000  │  0          │  35,00,000    │  29,166     │  0          │  29,166  │  29,166    │  0
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2025-04  │  35,00,000  │  0          │  35,00,000    │  29,166     │  0          │  29,166  │  29,166    │  0
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2025-05  │  35,00,000  │  0          │  35,00,000    │  29,166     │  0          │  29,166  │  29,166    │  0
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2025-06  │  70,00,000  │  0          │  70,00,000    │  58,333     │  0          │  58,333  │  58,333    │  0
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2025-07  │  70,00,000  │  0          │  70,00,000    │  58,333     │  0          │  58,333  │  18,333    │  40,000
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2025-08  │  70,00,000  │  0          │  70,00,000    │  58,333     │  0          │  58,333  │  0         │  99,133
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2025-09  │  70,00,000  │  32,50,000  │  1,02,50,000  │  58,333     │  32,500     │  90,833  │  0         │  1,91,948
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2025-10  │  70,00,000  │  32,50,000  │  1,02,50,000  │  58,333     │  32,500     │  90,833  │  0         │  2,86,619
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2025-11  │  70,00,000  │  32,50,000  │  1,02,50,000  │  58,333     │  32,500     │  90,833  │  0         │  3,83,184
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2025-12  │  70,00,000  │  32,50,000  │  1,02,50,000  │  58,333     │  32,500     │  90,833  │  5,77,513  │  -95,833
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2026-01  │  70,00,000  │  37,50,000  │  1,07,50,000  │  58,333     │  37,500     │  95,833  │  95,833    │  -95,833
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2026-02  │  70,00,000  │  37,50,000  │  1,07,50,000  │  58,333     │  37,500     │  95,833  │  0         │  0
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2026-03  │  70,00,000  │  37,50,000  │  1,07,50,000  │  58,333     │  37,500     │  95,833  │  0         │  95,833
+
+
+# Bob
+
+  Date     │  Bal @ 10%  │  Bal       │  Int @ 10%  │  Int    │  Paid   │  Due
+───────────┼─────────────┼────────────┼─────────────┼─────────┼─────────┼─────────
+  2026-03  │  4,90,000   │  4,90,000  │  4,083      │  4,083  │  1,500  │  2,583
+</code></pre>
+<p>This projection of the ledger history is very useful to me. There can be many such projections in the future, but for the time being, this will suffice.</p>
+<p>This tool need not be capable of parsing the entire Org format, just the structure above. If the structure is any different, the tool should fail.</p>
+<h2 id="implementation">Implementation</h2>
+<p>I’m a functional programmer and have been writing Haskell for a long time. I want to see how my ideas translate to OCaml. I want the implementation to have a good balance between readability and performance. When I say performance, I want to compare it to the most efficient C alternative. I’m not concerned with the asymptotic complexity but more so with the allocations and the final code produced after compiler optimisation.</p>
+<p>I will be skipping out on a few implementation details here. The code is hosted publicly at <a href="https://github.com/adithyaov/overdraft-render"><span class="citation" data-cites="adithyaov/overdraft-render">@adithyaov/overdraft-render</span></a> and the commits history is a good indication of how things evolved. I will talk more about how I went about implementing it in OCaml and occasionally compare it with Haskell.</p>
+<h3 id="parsing">Parsing</h3>
+<p>I’ve used the applicative parser library called <a href="https://ocaml.org/p/angstrom/latest">angstrom</a>.</p>
+<p>I expect the parsing to be linear without any backtracking. It would not have been very difficult to implement this naively, but I’m not sure if a handwritten parser would be significantly better (CPU + allocations) than applicative parsers.</p>
+<p>That said, applicative parsers are highly readable and debuggable, and so I’ve decided to use Angstrom. It may be worth implementing a subset of Angstrom to get a better feel for OCaml.</p>
+<p>My parser ended up looking like this:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> principal_payment = {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  rate : <span class="dt">int</span>;</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  principal : <span class="dt">int</span>;</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  date: date;</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>} [@@deriving show, eq]</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> get_unique_rates (principal_payments : principal_payment <span class="dt">list</span>) =</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  principal_payments</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  |&gt; <span class="dt">List</span>.map (<span class="kw">fun</span> p -&gt; p.rate)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  |&gt; <span class="dt">List</span>.sort_uniq <span class="dt">Int</span>.<span class="dt">compare</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> interest_payment = {</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  amount : <span class="dt">int</span>;</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  date: date;</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>} [@@deriving show, eq]</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> borrower = <span class="dt">string</span> [@@deriving show, eq]</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> borrower_details = {</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  unique_rates : <span class="dt">int</span> <span class="dt">list</span>;</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>  principal_payments : principal_payment <span class="dt">list</span>;</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  interest_payments : interest_payment <span class="dt">list</span>;</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>} [@@deriving show, eq]</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> database = borrower_details StringMap.t</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> database_as_list = (borrower * borrower_details) <span class="dt">list</span> [@@deriving show, eq]</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> Parser = <span class="kw">struct</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>  ...</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> borrower_details =</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    (<span class="kw">fun</span> bn ppl ipl -&gt;</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>      (bn, {</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>         unique_rates = get_unique_rates ppl;</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>         principal_payments = ppl;</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>         interest_payments = ipl;</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>    }))</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>    &lt;$&gt; account_name &lt;* filler</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>    &lt;*&gt;</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>      table_tag <span class="st">&quot;principal&quot;</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>      *&gt; principal_payment_header</span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>      *&gt; divider</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>      *&gt; many principal_payment &lt;* filler</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>    &lt;*&gt; table_tag <span class="st">&quot;interest&quot;</span></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>        *&gt; interest_payment_header</span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>        *&gt; divider</span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>        *&gt; many interest_payment</span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> database =</span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>    (<span class="kw">fun</span> bd_list -&gt;</span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>      bd_list</span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>      |&gt; <span class="dt">List</span>.to_seq</span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>      |&gt; StringMap.of_seq)</span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>    &lt;$&gt; many (filler *&gt; borrower_details)</span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div>
+<p>I’m really curious about the final code after all the compiler optimisations. I’ll have to look into this later. I also want to compare the memory profile to hand-written C.</p>
+<p>The OCaml module system is actually quite nice. It’s like Haskell’s backpack but much more mature. This is OCaml’s take on ad-hoc polymorphism and I really like its design.</p>
+<p>However deriving common functionality seems less mature in OCaml. It looks like deriving is the job of a pre-processor creating new functions for us to use. This feels closer to a compiler plugin in Haskell than to built-in deriving.</p>
+<h3 id="rendering">Rendering</h3>
+<p>For every borrower, the idea is to create a timeline that has the state of the ledger every month.</p>
+<pre><code>  Date     │  Bal @ 10%  │  Bal @ 12%  │  Bal          │  Int @ 10%  │  Int @ 12%  │  Int     │  Paid      │  Due
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2025-03  │  35,00,000  │  0          │  35,00,000    │  29,166     │  0          │  29,166  │  29,166    │  0
+...
+
+───────────┼─────────────┼─────────────┼───────────────┼─────────────┼─────────────┼──────────┼────────────┼────────────
+  2026-01  │  70,00,000  │  37,50,000  │  1,07,50,000  │  58,333     │  37,500     │  95,833  │  95,833    │  -95,833</code></pre>
+<p>Most problems can be modelled naturally in a streaming abstraction. This is no different. Also, given that I’m one of the authors and maintainers of <a href="https://streamly.composewell.com/">streamly</a>, I have a natural bias.</p>
+<p>The first thing I’ve googled was “Zero cost streaming abstractions in OCaml”. <a href="https://strymonas.github.io/">strymonas</a> came up and the ideas were very similar to what I’ve been working with for a long time. Stream fusion is a fascinating topic and reliable stream fusion makes readable abstractions as performant as hand written C. While I’ve wanted to take a jab at exploring this, for the time being, I’ve taken the safer path of using what was in the base libraries: <code>Seq</code>.</p>
+<p>The idea is simple. Given we have the following sparse streams,</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>principal_payment <span class="dt">Seq</span>.t</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>interest_payment <span class="dt">Seq</span>.t</span></code></pre></div>
+<p>we should build a complete timeline with all the information required generating the output row,</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> timeline_elem = {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    date : date;</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    prin_map : <span class="dt">int</span> IntMap.t;</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    int_map : <span class="dt">int</span> IntMap.t;</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    int_paid : <span class="dt">int</span>;</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    int_due : <span class="dt">int</span>;</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>timeline_elem <span class="dt">Seq</span>.t </span></code></pre></div>
+<p>Conceptually, the ledger can be produced by scanning a time-ordered stream of events. These events consist of principal changes, interest payments, and monthly ticks. So I ended up first building a complete event stream and then scanning over that event stream.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> event =</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  | Principal <span class="kw">of</span> principal_payment</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  | Interest <span class="kw">of</span> interest_payment</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  | Tick <span class="kw">of</span> date [@@deriving show, eq]</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> build_event_stream (details : borrower_details) : event <span class="dt">Seq</span>.t = ...</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> build_timeline_stream (event_stream : event <span class="dt">Seq</span>.t) : timeline_elem <span class="dt">Seq</span>.t = ...</span></code></pre></div>
+<p>It was quite straightforward to do this OCaml using <code>Seq</code>. It ended up looking like this:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> build_event_stream (details : borrower_details) : event <span class="dt">Seq</span>.t =</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> initial_date =</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">match</span> details.principal_payments, details.interest_payments <span class="kw">with</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    | [], [] -&gt; <span class="dt">None</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    | p :: _, [] -&gt; <span class="dt">Some</span> p.date</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    | [], i :: _ -&gt; <span class="dt">Some</span> i.date</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    | p :: _, i :: _ -&gt; <span class="dt">Some</span> (<span class="kw">if</span> p.date &lt; i.date <span class="kw">then</span> p.date <span class="kw">else</span> i.date)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">in</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> <span class="kw">rec</span> loop running_date (ps : principal_payment <span class="dt">list</span>) (is : interest_payment <span class="dt">list</span>) () =</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> running_date &gt; (current_date ()) <span class="kw">then</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Seq</span>.Nil</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">else</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>      <span class="kw">match</span> ps, is <span class="kw">with</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>      | p :: p_tl, _ <span class="kw">when</span> p.date = running_date -&gt;</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>         <span class="dt">Seq</span>.Cons (Principal p, loop running_date p_tl is)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>      | _, i :: i_tl <span class="kw">when</span> i.date = running_date -&gt;</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>         <span class="dt">Seq</span>.Cons (Interest i, loop running_date ps i_tl)</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>      | _, _ -&gt;</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>         <span class="dt">Seq</span>.Cons (Tick running_date, loop (next_date running_date) ps is)</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  <span class="kw">in</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  <span class="kw">match</span> initial_date <span class="kw">with</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  | <span class="dt">None</span> -&gt; <span class="dt">Seq</span>.empty</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>  | <span class="dt">Some</span> d -&gt; loop d details.principal_payments details.interest_payments</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> build_timeline_stream all_rates event_stream =</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> initial_state = {</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>      principal_accured = IntMap.empty;</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>      interest_paid = <span class="dv">0</span>;</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>      interest_due = <span class="dv">0</span>;</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    } <span class="kw">in</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> <span class="kw">rec</span> loop ev_step state () =</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>    <span class="kw">match</span> ev_step () <span class="kw">with</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    | <span class="dt">Seq</span>.Nil -&gt; <span class="dt">Seq</span>.Nil</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>    | <span class="dt">Seq</span>.Cons (event, ev_step_next) -&gt;</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>       <span class="kw">match</span> event <span class="kw">with</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>       | Principal p -&gt;</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>          <span class="kw">let</span> new_state = {</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>              state <span class="kw">with</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>              principal_accured =</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>                IntMap.update p.rate (<span class="kw">fun</span> mres -&gt;</span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">match</span> mres <span class="kw">with</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>                    | <span class="dt">Some</span> res -&gt; <span class="dt">Some</span> (res + p.principal)</span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>                    | <span class="dt">None</span> -&gt; <span class="dt">Some</span> p.principal</span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>                  ) state.principal_accured</span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>            } <span class="kw">in</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>          loop ev_step_next new_state ()</span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>       | Interest i -&gt;</span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>          <span class="kw">let</span> new_state = {</span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>              state <span class="kw">with</span></span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>              interest_paid = state.interest_paid + i.amount</span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a>            } <span class="kw">in</span></span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a>          loop ev_step_next new_state ()</span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>       | Tick d -&gt;</span>
+<span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a>          <span class="kw">let</span> standard_int_due_map =</span>
+<span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a>            IntMap.mapi (<span class="kw">fun</span> r p -&gt; p * r / <span class="dv">100</span> / <span class="dv">12</span>) state.principal_accured <span class="kw">in</span></span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a>          <span class="kw">let</span> standard_int_due =</span>
+<span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a>            IntMap.fold (<span class="kw">fun</span> _ amt acc -&gt; acc + amt) standard_int_due_map <span class="dv">0</span> <span class="kw">in</span></span>
+<span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a>          <span class="kw">let</span> interest_offset =</span>
+<span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> state.interest_due &gt; <span class="dv">0</span> <span class="kw">then</span></span>
+<span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a>              state.interest_due + (state.interest_due * <span class="dv">24</span>) / <span class="dv">100</span> / <span class="dv">12</span></span>
+<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a>            <span class="kw">else</span></span>
+<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a>              state.interest_due <span class="kw">in</span></span>
+<span id="cb8-65"><a href="#cb8-65" aria-hidden="true" tabindex="-1"></a>          <span class="kw">let</span> total_interest_due =</span>
+<span id="cb8-66"><a href="#cb8-66" aria-hidden="true" tabindex="-1"></a>            standard_int_due + interest_offset - state.interest_paid <span class="kw">in</span></span>
+<span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a>          <span class="kw">let</span> new_state =</span>
+<span id="cb8-68"><a href="#cb8-68" aria-hidden="true" tabindex="-1"></a>            { state <span class="kw">with</span></span>
+<span id="cb8-69"><a href="#cb8-69" aria-hidden="true" tabindex="-1"></a>              interest_due = total_interest_due;</span>
+<span id="cb8-70"><a href="#cb8-70" aria-hidden="true" tabindex="-1"></a>              interest_paid = <span class="dv">0</span></span>
+<span id="cb8-71"><a href="#cb8-71" aria-hidden="true" tabindex="-1"></a>            } <span class="kw">in</span></span>
+<span id="cb8-72"><a href="#cb8-72" aria-hidden="true" tabindex="-1"></a>          <span class="kw">let</span> loop_next = loop ev_step_next new_state <span class="kw">in</span></span>
+<span id="cb8-73"><a href="#cb8-73" aria-hidden="true" tabindex="-1"></a>          <span class="dt">Seq</span>.Cons ({</span>
+<span id="cb8-74"><a href="#cb8-74" aria-hidden="true" tabindex="-1"></a>                date = d;</span>
+<span id="cb8-75"><a href="#cb8-75" aria-hidden="true" tabindex="-1"></a>                prin_map = state.principal_accured;</span>
+<span id="cb8-76"><a href="#cb8-76" aria-hidden="true" tabindex="-1"></a>                int_map = standard_int_due_map;</span>
+<span id="cb8-77"><a href="#cb8-77" aria-hidden="true" tabindex="-1"></a>                int_due = total_interest_due;</span>
+<span id="cb8-78"><a href="#cb8-78" aria-hidden="true" tabindex="-1"></a>                int_paid = state.interest_paid</span>
+<span id="cb8-79"><a href="#cb8-79" aria-hidden="true" tabindex="-1"></a>              }, loop_next) <span class="kw">in</span></span>
+<span id="cb8-80"><a href="#cb8-80" aria-hidden="true" tabindex="-1"></a>  loop event_stream initial_state</span></code></pre></div>
+<p>Once we have the timeline stream, each element can be mapped to a table row. I’ve used <a href="https://ocaml.org/p/printbox/latest">printbox</a> for rendering helpers.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> make_table_row (inp : timeline_elem) : PrintBox.t <span class="dt">list</span></span></code></pre></div>
+<p>Streams are essentially functional loops and using streaming abstractions to model my solution helps build the loop step-by-step in a clean way.</p>
+<p>As before, I’m still very curious about how this is optimised after the compilation pipeline. While working with streamly in Haskell, I’d occasionally check the <code>Core</code> to see if the pipeline had fused.</p>
+<h3 id="miscellaneous-thoughts">Miscellaneous Thoughts:</h3>
+<p>I miss the <code>where</code> clause in Haskell.</p>
+<p>I’m curious about the naming scheme for types and values. Haskell’s clean separation of capitalised words for the type space and uncapitalised words for the value space is very appealing. I wonder why OCaml chose a different approach.</p>
+<p>I also miss the explicit function type signatures. In Haskell, I can provide an explicit type signature on a separate line for any function, which serves as excellent documentation. In OCaml, type signatures must be inline, which feels a bit tedious.</p>
+<p>Type errors are not very detailed and I’ve felt that type inference is more localised. For example,</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode ocaml"><code class="sourceCode ocaml"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> user = { name : <span class="dt">string</span>; age : <span class="dt">int</span> }</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> street = { name : <span class="dt">string</span> }</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">(* Compilation fails with type error *)</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> return_user user : user =</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">if</span> user.name == <span class="st">&quot;Alice&quot;</span> <span class="kw">then</span> user <span class="kw">else</span> user</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">(* Compilation succeeds *)</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> return_user (user : user) : user =</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">if</span> user.name == <span class="st">&quot;Alice&quot;</span> <span class="kw">then</span> user <span class="kw">else</span> user</span></code></pre></div>
+<p>I would have expected it to infer the type of <code>user</code> as <code>user</code> based on the output type.</p>
+<h2 id="next-steps">Next Steps</h2>
+<p>I’m quite happy with how this turned out. It was very easy to start working with OCaml. There are a few quality-of-life features I miss compared to Haskell, but there is no significant hurdle.</p>
+<p>There are a few things I plan to do:
+1. Learn more about the optimisation pipeline.
+2. Check how to see the final optimised output (Core equivalent in OCaml).
+3. Benchmark and study the performance of <code>overdraft-render</code>.
+4. Improve performance and memory profile of <code>overdraft-render</code> while maintaining readability.</p>
+<p>Feel free to review the code and suggest improvements to <code>overdraft-render</code>. I’m curious to hear thoughts on whether what I’ve written is idiomatic OCaml.</p>
+    </div>
+
+</article>
+
+            </main>
+
+            <footer class="site-footer">
+                Site proudly generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a>.
+            </footer>
+        </div>
+    </body>
+</html>

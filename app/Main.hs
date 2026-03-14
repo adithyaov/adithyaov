@@ -64,12 +64,27 @@ hakyllMain = hakyllWith config $ do
                 >>= loadAndApplyTemplate "templates/default.html" defaultContext
                 >>= relativizeUrls
 
+    match "posts/*.md" $ version "redirect" $ do
+        route $ metadataRoute $ \meta ->
+            case lookupString "shortLink" meta of
+                Just i -> constRoute $ "redirect/" ++ i ++ ".html"
+                Nothing -> mempty
+        compile $ do
+            thisId <- getUnderlying
+            let parentId = setVersion Nothing thisId
+            maybeUrl <- getRoute parentId
+            let targetUrl = maybe "/" toUrl maybeUrl
+            let redirectCtx = constField "targetUrl" targetUrl <> defaultContext
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/redirect.html" redirectCtx
+                >>= relativizeUrls
+
     -- Index
     create [ "index.html" ] $ do
         route idRoute
         compile $ do
             posts <-
-                loadAll "posts/*"
+                loadAll ("posts/*" .&&. hasNoVersion)
                     >>= filterM (fmap not . isDraft . itemIdentifier)
                     >>= recentFirst
             let ctx = constField "title" "Index" <>

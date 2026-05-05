@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Adithya Kumar - contextlm - Take Control of your LLM Context</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../css/normalize.css" />
+        <link rel="stylesheet" href="../css/style.css" />
+    </head>
+    <body>
+        <div class="container">
+
+            <header class="site-header">
+                <h1 class="site-title">
+                    <a href="../">Adithya Kumar</a>
+                </h1>
+
+                <nav class="site-nav">
+                    <ul>
+                        <li><a href="../">Posts</a></li>
+                        <li><a href="https://github.com/adithyaov">Github</a></li>
+                    </ul>
+                </nav>
+            </header>
+
+            <main>
+                <article>
+    <h1 class="post-title">contextlm - Take Control of your LLM Context</h1>
+    <div class="post-meta">
+        2026-05-05
+    </div>
+
+    <div class="post-content">
+        <p>I recently got onboarded onto a new project. As expected, there was a <em>lot</em> of context to absorb before I could meaningfully contribute. There is a lot of documentation to read, systems to understand, and, of course, a bunch of “stupid” questions to ask.</p>
+<p>To speed things up, I’ve been leveraging LLMs for asking questions and navigating unfamiliar codebases.</p>
+<p>When I approach a new repository, my workflow looks something like this:
+- Start a coding agent
+- Ask questions about the code
+- Let it explore and respond</p>
+<p>It works… but not perfectly.</p>
+<p>There is an immediate problem here: <strong>I have no real idea what context the LLM is actually using.</strong></p>
+<p>Sometimes:
+- It scans and ingests unnecessary directories and files
+- Other times, it lacks important context because it lives elsewhere.</p>
+<p>So I end up in this awkward situation where:
+- The model knows too much of the wrong stuff
+- And too little of the right stuff</p>
+<p>That’s not great.</p>
+<p><strong>I want to control the context I feed to the LLM.</strong> I want to know exactly what it sees so I can push the right information and avoid unnecessary noise.</p>
+<p>A quick search led me to tools like <code>onefilellm</code> and <code>aider</code>. <code>aider</code> felt a bit too heavy for what I wanted. <code>onefilellm</code> was closer to what I had in mind.</p>
+<p>I could’ve just used <code>onefilellm</code> and called it a day. This blog post wouldn’t exist if I had :)</p>
+<p>There were two reasons why I did not use <code>onefilellm</code>:
+1. The silly one:
+- No straightforward installation method
+- I’ve installed <code>pip</code> via <code>nix</code>, so extra setup friction
+2. The serious one: I wanted to vibe code.</p>
+<p>The goal is to create something similar to <code>onefilellm</code>. I’ve never used it so I’m not sure whether I’ve created something similar or different.</p>
+<p>The idea is very simple:</p>
+<ul>
+<li>A CLI tool + web UI.</li>
+<li>You input the repository path in the UI.</li>
+<li>You get a clean interface to:
+<ul>
+<li>Browse files</li>
+<li>Select exactly what should go into the LLM context</li>
+</ul></li>
+</ul>
+<p>And voila, here we are. After spending 20 USD and burning all my tokens, I present to you: <a href="https://github.com/adithyaov/contextlm"><strong>contextlm</strong></a>.</p>
+<p>Try it out using:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">nix</span> run github:adithyaov/contextlm <span class="at">--</span> <span class="at">--action</span> serve</span></code></pre></div>
+<p><img src="./contextlm-demo.png" alt="contextlm demo" style="width: 100%;"></p>
+<p>This was mostly built using <code>Claude</code>. I’ve occasionally refactored and fixed a few things but was not too involved in programming it.</p>
+<h3 id="my-experience-vibe-coding">My experience vibe coding</h3>
+<p>Overall, it was a great experience. I used Claude as my coding assistant, and it was surprisingly capable. It was able to create exactly what I wanted - the end product, and how the code is written.</p>
+<p>It was great with Haskell but was exceptional when the task involved Javascript and HTML. It may possibly be because of the skewed training data.</p>
+<p>I didn’t just give it a vague prompt and let it run wild. After every step, I performed a thorough review and gave it specific instructions. The instructions involved type signatures, examples, and any required additional context - like I would give to a fellow human.</p>
+<p>I sometimes had to stop it when it went on an unnecessary spiral of trying to fix a compile error, though this was not very often.</p>
+<p>But it was indeed able to perform all the tasks to my satisfaction!</p>
+<p>That said, I’m not blown away. At least not in the same way an ICE engine, or an Operating System blows me away. And I’m not sure why. It may possibly be because of the hype. In my case it did not live up to the hype and the billions of dollars that went into its development.</p>
+<p>Like any tool, the user is responsible to bring the most out of it. At the moment, I’m not a power user of coding agents. So it is possible that I don’t yet see the true potential.</p>
+<p>I’m excited to see how this evolves and what the future holds.</p>
+    </div>
+
+</article>
+
+            </main>
+
+            <footer class="site-footer">
+                Site proudly generated by <a href="http://jaspervdj.be/hakyll">Hakyll</a>.
+            </footer>
+        </div>
+    </body>
+</html>

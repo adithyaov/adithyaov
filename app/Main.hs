@@ -84,7 +84,7 @@ hakyllMain = hakyllWith config $ do
         route idRoute
         compile $ do
             posts <-
-                loadAll ("posts/*" .&&. hasNoVersion)
+                loadAll ("posts/*.md" .&&. hasNoVersion)
                     >>= filterM (fmap not . isDraft . itemIdentifier)
                     >>= recentFirst
             let ctx = constField "title" "Index" <>
@@ -103,6 +103,10 @@ hakyllMain = hakyllWith config $ do
         route idRoute
         compile $ pandocCompiler
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
+
+    match "posts/*.png" $ do
+        route idRoute
+        compile copyFileCompiler
 
     match "CNAME" $ do
         route idRoute

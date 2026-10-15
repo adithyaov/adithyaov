@@ -1,0 +1,390 @@
+/* org.css: a minimal stylesheet for Org-mode HTML export
+ *
+ * Usage in your .org file:
+ *   #+OPTIONS: html-style:nil html-scripts:nil num:nil
+ *   #+HTML_HEAD: <link rel="stylesheet" href="org.css">
+ *
+ * For syntax colours, also set:  (setq org-html-htmlize-output-type 'css)
+ */
+
+:root {
+  /* Very dark ink on a clean, barely-warm white. Contrast is ~18:1
+     (well above WCAG AAA's 7:1); the faint warmth just takes the edge
+     off pure #fff without greying the page. */
+  --paper:  #fdfcfa;
+  --ink:    #141414;
+  --muted:  #4f4d49;            /* secondary text still ~8:1 */
+  --rule:   #e3e0da;
+  --wash:   #f2f0eb;
+  --accent: #1f4f80;
+
+  --measure: 46rem;             /* wide column, ~85 characters per line */
+  --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Sitka Text",
+           Cambria, Georgia, serif;
+  --mono:  ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Bright (not pure white) text on a deep neutral background:
+       ~15:1 contrast, without the halation of #fff on #000. */
+    --paper:  #161616;
+    --ink:    #ececea;
+    --muted:  #b0ada7;
+    --rule:   #333230;
+    --wash:   #212120;
+    --accent: #a8c6ea;
+  }
+}
+
+/* Base ------------------------------------------------------------ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-size: 112.5%;            /* 18px */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
+  overflow-wrap: break-word;
+}
+
+#content, #preamble, #postamble, header, main, footer {
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+#content, main { padding-block: 3rem 5rem; }
+
+/* One consistent gap between blocks, equal to roughly one line. */
+p, ul, ol, dl, pre, blockquote, table, figure, .figure { margin: 0 0 1em; }
+p { text-wrap: pretty; }
+
+/* Org wraps section bodies in .outline-text-N; keep them flush. */
+[class^="outline-text-"] > :first-child { margin-top: 0; }
+[class^="outline-text-"] > :last-child  { margin-bottom: 0; }
+strong, b { font-weight: 650; }
+
+/* Headings: quiet signposts. Only slightly larger than body text,
+   medium weight, softer colour, so the prose stays in focus. -------- */
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+  color: color-mix(in srgb, var(--ink) 85%, var(--paper));
+  margin: 1.8em 0 0.4em;
+  text-wrap: balance;
+}
+.title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0 0 0.3em;
+  text-align: left;
+}
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.08rem; }
+h4 { font-size: 1rem; }
+h3, h4, h5, h6 { margin-top: 1.5em; }
+h5, h6 { font-size: 1rem; font-weight: 400; font-style: italic; }
+
+.subtitle, .author, .date { color: var(--muted); margin: 0 0 .25em; text-align: left; }
+/* Section structure ------------------------------------------------
+ *
+ *   1.  Heading                 <- number sits in its own gutter
+ *       Body text…              <- body aligns with heading text,
+ *       1.1.  Subheading           nothing sits under the number
+ *             Body text…        <- each level steps in again
+ *
+ * Org wraps each section in .outline-N, its text in .outline-text-N,
+ * and its subsections in .outline-(N+1).
+ */
+
+:root {
+  --gutter-2: 2rem;     /* room for "8."     */
+  --gutter-3: 2.5rem;   /* room for "8.1."   */
+  --gutter-4: 3rem;     /* room for "8.1.1." */
+  --gutter-5: 3.5rem;
+}
+
+/* Indent each section's body and its subsections past the number. */
+.outline-2 > .outline-text-2, .outline-2 > .outline-3 { margin-left: var(--gutter-2); }
+.outline-3 > .outline-text-3, .outline-3 > .outline-4 { margin-left: var(--gutter-3); }
+.outline-4 > .outline-text-4, .outline-4 > .outline-5 { margin-left: var(--gutter-4); }
+.outline-5 > .outline-text-5, .outline-5 > .outline-6 { margin-left: var(--gutter-5); }
+
+/* Hanging numbers: the number sits in the gutter, out of the text flow,
+   so the heading text (and any wrapped lines) align exactly with the
+   body text below. Org's space after the number lands at the start of
+   the line, where the browser drops it. */
+h2:has(> .section-number-2) { padding-left: var(--gutter-2); }
+h3:has(> .section-number-3) { padding-left: var(--gutter-3); }
+h4:has(> .section-number-4) { padding-left: var(--gutter-4); }
+h5:has(> .section-number-5) { padding-left: var(--gutter-5); }
+h2, h3, h4, h5 { position: relative; }
+
+[class^="section-number-"] {
+  position: absolute;
+  left: 0;
+  color: var(--muted);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Links ------------------------------------------------------------ */
+
+/* Links read as part of the text: a gentle colour shift plus a faint
+   underline, so dense paragraphs of links don't pull the eye around. */
+a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: color .15s, text-decoration-color .15s;
+}
+a:hover { color: var(--accent); text-decoration-color: currentColor; }
+a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Lists ------------------------------------------------------------ */
+
+ul, ol { padding-left: 1.4em; }
+li { margin: 0.2em 0; }
+li > ul, li > ol { margin: 0.2em 0 0.3em; }
+/* Org emits <p> inside list items when items are separated by blank
+   lines; without this every item gets a full paragraph gap. */
+li > p { margin: 0 0 0.4em; }
+li > p:last-child { margin-bottom: 0; }
+li::marker { color: var(--muted); }
+dt { font-weight: 650; }
+dd { margin: 0 0 .6em 1.4em; }
+
+/* Table of contents ------------------------------------------------ */
+
+#table-of-contents {
+  margin: 2rem 0 3rem;
+  padding: 0.25rem 0 0.25rem 1.1rem;
+  border-left: 2px solid var(--rule);
+  font-size: 0.9rem;
+}
+#table-of-contents h2 { font-size: 1rem; margin: 0.5em 0; color: var(--muted); }
+#text-table-of-contents ul { list-style: none; padding-left: 1em; margin: 0; }
+#text-table-of-contents > ul { padding-left: 0; }
+#text-table-of-contents li { margin: .2em 0; }
+#text-table-of-contents a { color: var(--ink); text-decoration: none; }
+#text-table-of-contents a:hover { color: var(--accent); }
+
+/* Quotes ----------------------------------------------------------- */
+
+/* Upright text in a slightly softer colour: long italic grey passages
+   are hard to read. */
+blockquote {
+  margin-inline: 0;
+  padding-left: 1.1rem;
+  border-left: 3px solid var(--rule);
+  color: color-mix(in srgb, var(--ink) 92%, var(--paper));
+}
+blockquote p:last-child { margin-bottom: 0; }
+.verse { white-space: pre-wrap; padding-left: 1.1rem; border-left: 2px solid var(--rule); }
+.org-center, .center { text-align: center; }
+
+/* Code ------------------------------------------------------------- */
+
+/* Monospace looks bigger than serif at the same size, so shrink it
+   a little relative to the text around it, not to the root. */
+code, kbd, samp, pre { font-family: var(--mono); font-size: 0.86em; }
+
+code, kbd, .verbatim {
+  background: var(--wash);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+pre {
+  background: var(--wash);
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow-x: auto;
+  line-height: 1.55;
+  tab-size: 4;
+  position: relative;
+}
+pre code { background: none; padding: 0; font-size: inherit; overflow-wrap: normal; }
+
+/* language tag in the corner, taken from Org's pre.src-LANG class */
+pre.src::before {
+  position: absolute;
+  top: .4rem; right: .75rem;
+  font: 0.7rem/1 var(--serif);
+  color: var(--muted);
+}
+pre.src-emacs-lisp::before { content: "elisp"; }
+pre.src-python::before     { content: "python"; }
+pre.src-sh::before         { content: "shell"; }
+pre.src-js::before         { content: "js"; }
+pre.src-css::before        { content: "css"; }
+pre.src-html::before       { content: "html"; }
+pre.src-c::before          { content: "c"; }
+pre.src-rust::before       { content: "rust"; }
+pre.src-go::before         { content: "go"; }
+
+/* Syntax colours (needs org-html-htmlize-output-type 'css)
+   Muted palette so code blocks don't shout over the prose. */
+.org-comment, .org-comment-delimiter, .org-doc { color: var(--muted); font-style: italic; }
+.org-keyword, .org-preprocessor                { color: #7a4f8a; }
+.org-string                                    { color: #4f7a52; }
+.org-function-name, .org-type, .org-variable-name { color: #3b5f8a; }
+.org-constant, .org-builtin                    { color: #9a6232; }
+@media (prefers-color-scheme: dark) {
+  .org-keyword, .org-preprocessor { color: #c3a6cf; }
+  .org-string                     { color: #a9c79a; }
+  .org-function-name, .org-type, .org-variable-name { color: #9fb9d6; }
+  .org-constant, .org-builtin     { color: #d7ad85; }
+}
+
+/* Tables ----------------------------------------------------------- */
+
+table {
+  border-collapse: collapse;
+  border: 0;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+table[border], table[rules], table[frame] { border: 0; }
+/* Full grid: every cell is bordered, so with border-collapse the table
+   gets a complete outer frame plus all inner lines. (Borders go on the
+   cells, not the table, because the table is display:block for
+   horizontal scrolling and its box would be wider than the cells.) */
+th, td {
+  padding: 0.5rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, var(--paper));
+  vertical-align: top;
+}
+th {
+  text-align: left;
+  font-weight: 600;
+  background: var(--wash);
+}
+thead, tbody, colgroup { border: 0; }
+.org-right  { text-align: right; }
+.org-left   { text-align: left; }
+.org-center { text-align: center; }
+/* Org's built-in stylesheet centres every header (th.org-left etc.);
+   align headers with their column instead. */
+th.org-right  { text-align: right; }
+th.org-left   { text-align: left; }
+th.org-center { text-align: center; }
+caption { caption-side: bottom; padding-top: .5rem; color: var(--muted); font-size: .85rem; text-align: left; }
+
+/* Figures and images ---------------------------------------------- */
+
+img { max-width: 100%; height: auto; border-radius: 4px; }
+.figure p, figcaption { color: var(--muted); font-size: 0.85rem; margin-top: .5rem; }
+.figure img { display: block; }
+
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+
+/* Org specifics ---------------------------------------------------- */
+
+.todo, .done {
+  font: 600 0.7rem/1 var(--mono);
+  padding: 0.25em 0.55em;
+  border-radius: 4px;
+  margin-right: 0.4em;
+  vertical-align: 0.12em;
+}
+.todo { background: #f6e6e1; color: #8a3a2c; }
+.done { background: #e4efe2; color: #3d6b45; }
+@media (prefers-color-scheme: dark) {
+  .todo { background: #3a2622; color: #e3b0a5; }
+  .done { background: #22301f; color: #a9cfa5; }
+}
+
+.tag { margin-left: 0.5em; font-weight: 400; }
+.tag span {
+  font: 0.72rem/1 var(--serif);
+  color: var(--muted);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.2em 0.7em;
+  margin-left: 0.2em;
+}
+
+.timestamp, .timestamp-kwd, .timestamp-wrapper { color: var(--muted); font-size: 0.88em; }
+.priority { color: var(--accent); font-family: var(--mono); font-size: .85em; }
+
+.footnotes { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-size: 0.9rem; line-height: 1.55; color: var(--ink); }
+.footnotes h2, .footnotes h3 { font-size: .95rem; margin: 0 0 .5em; }
+.footdef { margin-bottom: .5em; }
+.footnum { font-size: .8em; margin-right: .3em; }
+/* Org's default CSS (disabled by html-style:nil) keeps the footnote
+   number and text on one line; restore that. */
+.footpara { display: inline; margin: 0; }
+sup a { text-decoration: none; }
+
+/* Stop superscripts/subscripts from pushing lines apart, which makes
+   the line spacing uneven in paragraphs with footnotes. */
+sup, sub { line-height: 0; position: relative; vertical-align: baseline; font-size: 0.75em; }
+sup { top: -0.5em; }
+sub { bottom: -0.25em; }
+.footdef sup { top: 0; font-size: inherit; }
+
+mark, .org-mark { background: color-mix(in srgb, #e8c547 30%, transparent); color: inherit; padding: 0 .15em; border-radius: 2px; }
+
+::selection { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+
+#postamble {
+  padding-block: 2rem 4rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--rule);
+}
+#postamble p { margin: 0 0 .2em; }
+
+/* Small screens & print ------------------------------------------- */
+
+@media (max-width: 36rem) {
+  html { font-size: 106.25%; }
+  body { line-height: 1.5; }
+  /* Narrower steps on phones so deep sections don't get squeezed. */
+  :root {
+    --gutter-2: 1.6rem;
+    --gutter-3: 2.1rem;
+    --gutter-4: 2.6rem;
+    --gutter-5: 3rem;
+  }
+  .title { font-size: 1.5rem; }
+  h2 { font-size: 1.15rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a { transition: none; }
+}
+
+@media print {
+  :root { --paper: #fff; --ink: #000; --muted: #444; --rule: #bbb; --wash: #f4f4f4; --accent: #000; }
+  html { font-size: 11pt; }
+  #content, main { padding: 0; }
+  a { text-decoration: none; }
+  pre { white-space: pre-wrap; border: 1px solid var(--rule); }
+}

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-10-16 Fri 02:10 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Consistent Emacs key bindings across terminals</title>
+<meta name="author" content="Adithya" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="./org.css">
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Consistent Emacs key bindings across terminals</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org55a5205">1. Why Keybindings Break in the Terminal</a></li>
+<li><a href="#org3359ef7">2. My Compatibility Layer in Emacs</a></li>
+<li><a href="#orgfa0a930">3. Translating Keys at the OS Level</a></li>
+<li><a href="#orge925b69">4. Final Thoughts</a></li>
+</ul>
+</div>
+</div>
+<p>
+I've always enjoyed using applications that run directly inside the
+terminal. Terminal apps are fast, simple, and usually require very few
+dependencies. They also work beautifully with other command-line tools like
+tmux, ssh workflows, and even remote machines. Once you get comfortable living
+in the terminal, it becomes hard to go back to anything else.
+</p>
+
+<p>
+For the past five years, <b>Emacs has been at the center of this workflow</b>, running
+inside my terminal almost every day. But there has always been one annoying part
+of this setup: getting keybindings to behave consistently.
+</p>
+
+<p>
+Themes can be a bit tricky too, but at least they <span class="underline">mostly</span> work. Keybindings, on
+the other hand, are where terminals love to surprise you.
+</p>
+<div id="outline-container-org55a5205" class="outline-2">
+<h2 id="org55a5205"><span class="section-number-2">1.</span> Why Keybindings Break in the Terminal</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Graphical Emacs receives key events directly from the operating system. Terminal
+Emacs does not. Instead, the terminal emulator acts as a middle layer: you press
+a key → the terminal translates it into some escape sequence → Emacs tries to
+interpret that sequence.
+</p>
+
+<p>
+This works for many keys, but not for all. Terminals vary widely in how they
+translate key presses. Some keys simply never make it through in a meaningful
+way.
+</p>
+
+<p>
+As a result, certain key combinations do not work out of the box. In my setup,
+these fail by default:
+</p>
+
+<ul class="org-ul">
+<li><code>M-O</code></li>
+<li><code>C-&lt;return&gt;</code></li>
+<li><code>C-/</code></li>
+</ul>
+
+<p>
+Sometimes the terminal doesn't send the key at all. Sometimes it sends something
+Emacs cannot understand. And sometimes&hellip; the terminal simply invents its own
+idea of what the key <span class="underline">should</span> be.
+</p>
+</div>
+</div>
+<div id="outline-container-org3359ef7" class="outline-2">
+<h2 id="org3359ef7"><span class="section-number-2">2.</span> My Compatibility Layer in Emacs</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+To deal with this, I use a small compatibility layer in Emacs. The idea is
+simple:
+</p>
+
+<ol class="org-ol">
+<li>Pick a prefix key that the terminal reliably sends.</li>
+<li>Translate that prefix + a custom key into the real keybinding I want.</li>
+</ol>
+
+<p>
+Here is the snippet I use:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-elisp"><code>(defun configure-compatibility ()
+  (define-key key-translation-map (kbd "C-c c u") (kbd "C-/"))
+  (define-key key-translation-map (kbd "C-c c e") (kbd "C-&lt;return&gt;"))
+  (define-key key-translation-map (kbd "C-c c o") (kbd "M-O")))
+</code></pre>
+</div>
+
+<p>
+I chose <code>C-c c</code> because it reliably passes through the terminal without getting
+mangled. But any prefix that works for your setup is fine.
+</p>
+
+<p>
+This gives Emacs a predictable "language" for problematic keys.
+</p>
+</div>
+</div>
+<div id="outline-container-orgfa0a930" class="outline-2">
+<h2 id="orgfa0a930"><span class="section-number-2">3.</span> Translating Keys at the OS Level</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+The second piece of the puzzle is teaching the operating system to convert the
+<span class="underline">real</span> keypress into the custom prefix sequence.
+</p>
+
+<p>
+Different platforms have different tools for this:
+</p>
+
+<ul class="org-ul">
+<li><b><b>Windows</b></b> → AutoHotkey</li>
+<li><b><b>Linux</b></b> → Kmonad</li>
+<li><b><b>macOS</b></b> → Karabiner</li>
+</ul>
+
+<p>
+These tools capture raw keystrokes and remap them before they ever reach the
+terminal. So, for example:
+</p>
+
+<ul class="org-ul">
+<li>When I press <code>C-/</code>, the system actually sends <code>C-c c u</code></li>
+<li>When I press <code>C-&lt;return&gt;</code>, it sends <code>C-c c e</code></li>
+</ul>
+
+<p>
+Emacs sees a clean, consistent input regardless of what the terminal does.
+</p>
+</div>
+</div>
+<div id="outline-container-orge925b69" class="outline-2">
+<h2 id="orge925b69"><span class="section-number-2">4.</span> Final Thoughts</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+If you use Emacs deeply, you probably depend on muscle memory. A keybinding that
+works in one terminal but not another can break your entire flow. This approach
+gives you consistent bindings across all terminals. It's a simpler, more
+predictable configuration for key bindings.
+</p>
+
+<p>
+It also helps you avoid the endless debugging cycle of: "Is this Emacs? My
+terminal? My OS? My tmux? Something else entirely?"
+</p>
+
+<p>
+If you're someone who lives in the terminal, especially across multiple
+environments, this little bit of setup can make a huge difference.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Adithya</p>
+<p class="date">Created: 2026-10-16 Fri 02:10</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

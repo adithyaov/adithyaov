@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-10-16 Fri 02:10 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Instrumenting a forever stream using hs-opentelemetry</title>
+<meta name="author" content="Adithya" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="./org.css">
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Instrumenting a forever stream using hs-opentelemetry</h1>
+<p>
+In the context of <code>hs-opentelemetry</code>, instrumenting an action involves creating
+a span at the beginning of the action and ending the span after the action.
+</p>
+
+<p>
+Example,
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>function :: IO ()
+function = do
+  ...
+  s &lt;- startSpan
+  action
+  endSpan s
+  ...
+</code></pre>
+</div>
+
+<p>
+Consider the following code and requirements:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>function :: IO ()
+function =
+    Stream.repeat processBatch
+      &amp; Stream.fold Fold.drain
+  where
+    processBatch = do
+      ...
+</code></pre>
+</div>
+
+<p>
+<b>Requirements:</b>
+</p>
+
+<ol class="org-ol">
+<li>We want to have visibility on <code>processBatch</code>.</li>
+<li>We want to have visibility over the entire stream execution as well.</li>
+</ol>
+
+<p>
+Instrumenting <code>processBatch</code> is straightforward. We just wrap it around a span.
+</p>
+
+<p>
+But instrumenting the entire stream is not. We can add the <code>startSpan</code> at the
+beginning using <code>Stream.before</code> but where will you add <code>endSpan</code>.  You might say
+<code>Stream.after</code> but this is a stream that runs forever and there is no <b>after</b>
+forever.
+</p>
+
+<p>
+A nicer approach that gives more visibility for such streams is to group the
+stream and instrument the groups.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-nil"><code>Forever Stream:
+
+[0] -&gt; [1] -&gt; [2] -&gt; ... -&gt; [999] -&gt; [1000] -&gt; ...
+
+Grouped Forever Stream (groupsOf 100):
+
+[ [0] -&gt; [1] -&gt; ...[99] ] -&gt; [ [100] -&gt; ... -&gt; [199] ] -&gt; ...
+</code></pre>
+</div>
+
+<p>
+Since the number of elements in this group is finite in nature, instrumenting
+these groups is simpler. We <code>startSpan</code> at the beginning of every group and
+<code>endSpan</code> at the end of every group.
+</p>
+
+<p>
+We can do something like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>function :: IO ()
+function =
+    Stream.repeat processBatch
+      &amp; Stream.groupsOf 100 wrapSpan
+      &amp; Stream.fold Fold.drain
+  where
+    processBatch = do
+      ...
+</code></pre>
+</div>
+
+<p>
+This way we get the live instrumentation data frequently.
+</p>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Adithya</p>
+<p class="date">Created: 2026-10-16 Fri 02:10</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

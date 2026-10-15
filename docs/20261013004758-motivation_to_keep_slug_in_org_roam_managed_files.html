@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-10-16 Fri 02:10 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Motivation to keep slug in org-roam managed files</title>
+<meta name="author" content="Adithya" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="./org.css">
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Motivation to keep slug in org-roam managed files</h1>
+<p>
+<code>org-roam</code> does not care about file named. All it cares about is the <b>ID</b>.
+</p>
+
+<p>
+We choose to represent the filename as <code>&lt;timestamp&gt;-&lt;slug&gt;.org</code>.
+</p>
+
+<p>
+There is a chance for the filenames to differ from the actual titles
+eventually. And so there is a minor overhead of syncing them manually:
+<a href="elisp:(org-roam-name-sync-all)">org-roam-name-sync-all</a> helps with this.
+</p>
+
+<p>
+Current motivation to keep the slug is to review the identity of a file with
+ease when exporting a cluster as a website with <a href="elisp:(org-roam-export-with-links)">org-roam-export-with-links</a>.  The
+review is required to check if any private files are exported and take action
+accordingly.
+</p>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Adithya</p>
+<p class="date">Created: 2026-10-16 Fri 02:10</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-10-16 Fri 02:10 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How does "git describe" work?</title>
+<meta name="author" content="Adithya" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="./org.css">
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">How does "git describe" work?</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org2a63f57">1. The output format</a></li>
+<li><a href="#org3d72ec6">2. A small example</a></li>
+<li><a href="#orgbaa2b10">3. With branches</a></li>
+<li><a href="#orgd9f8ea2">4. Looking forwards: <code>git describe --contains</code></a></li>
+<li><a href="#org303c872">5. Useful flags</a></li>
+</ul>
+</div>
+</div>
+<p>
+<code>git describe &lt;sha&gt;</code> names a commit after the nearest tag <b>before</b> it, plus the
+number of commits since that tag.
+</p>
+<div id="outline-container-org2a63f57" class="outline-2">
+<h2 id="org2a63f57"><span class="section-number-2">1.</span> The output format</h2>
+<div class="outline-text-2" id="text-1">
+<pre class="example" id="orgfd38696">
+v1-57-g3f1c9a7e2b
+│  └┬┘ └────┬────┘
+│   │       └── "g" + the abbreviated commit hash (g = git)
+│   └────────── 57 commits after the tag
+└────────────── the nearest tag before the commit
+</pre>
+
+<p>
+If the commit <b>is</b> the tagged commit, the output is just the tag:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-shell"><code>$ git describe v1
+v1
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org3d72ec6" class="outline-2">
+<h2 id="org3d72ec6"><span class="section-number-2">2.</span> A small example</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Take a repository with one branch and two tags:
+</p>
+
+<pre class="example" id="org6a11186">
+A ── B ── C ── D ── E ── F
+     │              │
+     v1             v2
+</pre>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Commit</th>
+<th scope="col" class="org-left">Nearest tag before it</th>
+<th scope="col" class="org-right">Commits since the tag</th>
+<th scope="col" class="org-left"><code>git describe</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">A</td>
+<td class="org-left">none</td>
+<td class="org-right">&nbsp;</td>
+<td class="org-left"><code>fatal: No names found</code></td>
+</tr>
+
+<tr>
+<td class="org-left">B</td>
+<td class="org-left">v1</td>
+<td class="org-right">0</td>
+<td class="org-left"><code>v1</code></td>
+</tr>
+
+<tr>
+<td class="org-left">C</td>
+<td class="org-left">v1</td>
+<td class="org-right">1</td>
+<td class="org-left"><code>v1-1-g&lt;C&gt;</code></td>
+</tr>
+
+<tr>
+<td class="org-left">D</td>
+<td class="org-left">v1</td>
+<td class="org-right">2</td>
+<td class="org-left"><code>v1-2-g&lt;D&gt;</code></td>
+</tr>
+
+<tr>
+<td class="org-left">E</td>
+<td class="org-left">v2</td>
+<td class="org-right">0</td>
+<td class="org-left"><code>v2</code></td>
+</tr>
+
+<tr>
+<td class="org-left">F</td>
+<td class="org-left">v2</td>
+<td class="org-right">1</td>
+<td class="org-left"><code>v2-1-g&lt;F&gt;</code></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+<code>git describe</code> only looks backwards in history, never forwards. That has two
+consequences:
+</p>
+
+<ul class="org-ul">
+<li><b>Adding a tag later doesn't change the name of older commits.</b> If we tag F as
+<code>v3</code>, C is still <code>v1-1-g&lt;C&gt;</code>, because <code>v3</code> is not before C.</li>
+<li><b>The name doesn't tell you which later tags contain the commit.</b> C is in <code>v2</code>, but
+its name only mentions <code>v1</code>.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgbaa2b10" class="outline-2">
+<h2 id="orgbaa2b10"><span class="section-number-2">3.</span> With branches</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Now add a release branch that forks from <code>v1</code>:
+</p>
+
+<pre class="example" id="orga34500a">
+main     A ── B ── C ── D ── E
+              │              │
+              v1             v2
+              │
+release       └── X ── Y
+</pre>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Commit</th>
+<th scope="col" class="org-left">Branch</th>
+<th scope="col" class="org-left"><code>git describe</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">C</td>
+<td class="org-left">main</td>
+<td class="org-left"><code>v1-1-g&lt;C&gt;</code></td>
+</tr>
+
+<tr>
+<td class="org-left">D</td>
+<td class="org-left">main</td>
+<td class="org-left"><code>v1-2-g&lt;D&gt;</code></td>
+</tr>
+
+<tr>
+<td class="org-left">X</td>
+<td class="org-left">release</td>
+<td class="org-left"><code>v1-1-g&lt;X&gt;</code></td>
+</tr>
+
+<tr>
+<td class="org-left">Y</td>
+<td class="org-left">release</td>
+<td class="org-left"><code>v1-2-g&lt;Y&gt;</code></td>
+</tr>
+
+<tr>
+<td class="org-left">E</td>
+<td class="org-left">main</td>
+<td class="org-left"><code>v2</code></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+D and Y both come out as <code>v1-2-...</code>. Their names look the same, but they are on
+different branches. Only the hash tells them apart.
+</p>
+
+<p>
+One solution is to tag the first commit on main after a release, marking the
+start of the next development cycle. Here we tag C as <code>v2-dev</code>:
+</p>
+
+<pre class="example" id="org5b16aa9">
+main     A ── B ── C ── D ── E
+              │    │         │
+              v1   v2-dev    v2
+              │
+release       └── X ── Y
+</pre>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Commit</th>
+<th scope="col" class="org-left">Branch</th>
+<th scope="col" class="org-left"><code>git describe</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">C</td>
+<td class="org-left">main</td>
+<td class="org-left"><code>v2-dev</code></td>
+</tr>
+
+<tr>
+<td class="org-left">D</td>
+<td class="org-left">main</td>
+<td class="org-left"><code>v2-dev-1-g&lt;D&gt;</code></td>
+</tr>
+
+<tr>
+<td class="org-left">X</td>
+<td class="org-left">release</td>
+<td class="org-left"><code>v1-1-g&lt;X&gt;</code></td>
+</tr>
+
+<tr>
+<td class="org-left">Y</td>
+<td class="org-left">release</td>
+<td class="org-left"><code>v1-2-g&lt;Y&gt;</code></td>
+</tr>
+
+<tr>
+<td class="org-left">E</td>
+<td class="org-left">main</td>
+<td class="org-left"><code>v2</code></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Now the name alone tells us the branch:
+</p>
+<ul class="org-ul">
+<li><code>v1-N-...</code> means the release branch.</li>
+<li><code>v2-dev-N-...</code> means main, working towards <code>v2</code>.</li>
+</ul>
+
+<p>
+Many projects follow this workflow.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd9f8ea2" class="outline-2">
+<h2 id="orgd9f8ea2"><span class="section-number-2">4.</span> Looking forwards: <code>git describe --contains</code></h2>
+<div class="outline-text-2" id="text-4">
+<p>
+<code>--contains</code> does the opposite. It names a commit after the nearest tag <b>after</b> it,
+i.e. the first tag that contains it.
+</p>
+
+<p>
+Using the small example:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-shell"><code>$ git describe --contains C
+v2~2
+</code></pre>
+</div>
+
+<p>
+C is 2 commits before <code>v2</code>, so it is in <code>v2</code>.
+</p>
+
+<p>
+If no tag comes after the commit, it fails:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-shell"><code>$ git describe --contains F
+fatal: cannot describe 'F'
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org303c872" class="outline-2">
+<h2 id="org303c872"><span class="section-number-2">5.</span> Useful flags</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+Same repository as the small example, with one extra lightweight tag <code>nightly</code> on
+C:
+</p>
+
+<pre class="example" id="orge7e9eee">
+A ── B ── C ── D ── E ── F
+     │    │         │
+     v1   nightly   v2
+</pre>
+
+<p>
+All outputs are for commit D:
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Command</th>
+<th scope="col" class="org-left">Output</th>
+<th scope="col" class="org-left">Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>git describe D</code></td>
+<td class="org-left"><code>v1-2-g&lt;D&gt;</code></td>
+<td class="org-left">Full name: nearest annotated tag before D + commit count</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>git describe --abbrev=0 D</code></td>
+<td class="org-left"><code>v1</code></td>
+<td class="org-left">Only the nearest tag before D. Drops the <code>-2-g&lt;D&gt;</code> suffix</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>git describe --contains D</code></td>
+<td class="org-left"><code>v2~1</code></td>
+<td class="org-left">First tag after D that contains it. D is 1 commit before <code>v2</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><code>git describe --tags D</code></td>
+<td class="org-left"><code>nightly-1-g&lt;D&gt;</code></td>
+<td class="org-left">Also consider lightweight tags, so <code>nightly</code> wins</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>git describe --exact-match D</code></td>
+<td class="org-left"><code>fatal: no tag exactly matches ...</code></td>
+<td class="org-left">Only succeeds if D itself is tagged</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>git describe --always A</code></td>
+<td class="org-left"><code>&lt;A&gt;</code></td>
+<td class="org-left">Fall back to the abbreviated hash when no tag is found</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>
+<code>git describe D</code> and <code>git describe --tags D</code> may be confusing if you aren't aware
+of <a href="20261009010828-types_of_tags_in_git.html">annotated tags and lightweight tags</a>.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Adithya</p>
+<p class="date">Created: 2026-10-16 Fri 02:10</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

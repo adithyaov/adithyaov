@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-10-16 Fri 02:10 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Introducing ical-buddy.el</title>
+<meta name="author" content="Adithya" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="./org.css">
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Introducing ical-buddy.el</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org6323957">1. Why?</a></li>
+<li><a href="#orga177925">2. Existing solutions</a></li>
+<li><a href="#orged94d8b">3. So, what now?</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org6323957" class="outline-2">
+<h2 id="org6323957"><span class="section-number-2">1.</span> Why?</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+I want to track my work Google Calendar events in <code>org-agenda</code>. My work calendar
+is sandboxed:
+</p>
+
+<ul class="org-ul">
+<li>It is only accessible via the UI</li>
+<li>It does not provide a private export link</li>
+<li>I don't have access to Google Workspace or Google Cloud for the account</li>
+</ul>
+
+<p>
+I only need read-only, unidirectional access: <code>Google -&gt; local</code>.
+</p>
+
+<p>
+If your calendar isn't sandboxed, you don't need any of this. You should just
+use other amazing packages that exist.
+</p>
+</div>
+</div>
+<div id="outline-container-orga177925" class="outline-2">
+<h2 id="orga177925"><span class="section-number-2">2.</span> Existing solutions</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+There are a few packages that seem like they'd work, but each hits the same
+wall.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Package</th>
+<th scope="col" class="org-left">Why it fails</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>org-caldav</code></td>
+<td class="org-left">Needs a CalDAV URL; sandboxed Google accounts don't expose one</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>org-gcal</code></td>
+<td class="org-left">Requires Google Cloud OAuth credentials; unavailable for managed accounts</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>org-ics-import</code></td>
+<td class="org-left">Needs a private ICS export link; sandboxed calendars don't provide one</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-orged94d8b" class="outline-2">
+<h2 id="orged94d8b"><span class="section-number-2">3.</span> So, what now?</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+I <i>was</i> able to add my work calendar to <code>Calendar.app</code>, which can
+authenticate via OAuth and pull events just fine.
+</p>
+
+<p>
+This opens a door. If <code>Calendar.app</code> could export an ICS file over the CLI, I
+could pipe that into <code>org-ics-import</code>. It can't, though, which is why
+<code>ical-buddy.el</code> exists.
+</p>
+
+<p>
+<code>Calendar.app</code> itself was too heavy just for ICS export, so I looked for a
+minimal CLI tool that could connect to online calendar accounts and spit out
+calendar data. I didn't find one.
+</p>
+
+<p>
+What I did find was <a href="https://hasseg.org/icalBuddy/">icalBuddy</a>: a CLI interface to <code>Calendar.app</code>. Since
+<code>Calendar.app</code> already handles the OAuth and syncing, <code>icalBuddy</code> can simply read
+from it, and that's all I need.
+</p>
+
+<p>
+<code>ical-buddy.el</code> wraps <code>icalBuddy</code> to fetch events from <code>Calendar.app</code> and parse them
+into an org file that <code>org-agenda</code> can track. The parsing happens on demand; I
+trigger it while interacting with <code>org-agenda</code>, though a cron job works too.
+</p>
+
+<p>
+See the <a href="https://github.com/adithyaov/ical-buddy.el">README</a> for usage.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Adithya</p>
+<p class="date">Created: 2026-10-16 Fri 02:10</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

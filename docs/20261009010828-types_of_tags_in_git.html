@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-10-16 Fri 02:10 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Types of tags in git</title>
+<meta name="author" content="Adithya" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="./org.css">
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Types of tags in git</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgae999b1">1. Lightweight tags</a></li>
+<li><a href="#org22dfea2">2. Annotated tags</a></li>
+<li><a href="#org534a99f">3. Why two kinds?</a></li>
+</ul>
+</div>
+</div>
+<p>
+A tag is a name for a commit. git has two kinds:
+</p>
+
+<ol class="org-ol">
+<li><b>Lightweight tags</b>: just a name that points at a commit.</li>
+<li><b>Annotated tags</b>: a name that points at a <b>tag object</b>, which stores who created
+the tag, when, and why. The tag object then points at the commit.</li>
+</ol>
+
+<pre class="example" id="org6a33bd2">
+Lightweight:   nightly ─────────────────────▶ commit C
+
+Annotated:     v1 ──▶ tag object ───────────▶ commit B
+                      tagger: Jane Doe
+                      date:   2026-01-01
+                      message: Release v1
+</pre>
+<div id="outline-container-orgae999b1" class="outline-2">
+<h2 id="orgae999b1"><span class="section-number-2">1.</span> Lightweight tags</h2>
+<div class="outline-text-2" id="text-1">
+<div class="org-src-container">
+<pre class="src src-shell"><code>$ git tag nightly C
+</code></pre>
+</div>
+
+<p>
+A lightweight tag is like a branch that never moves. It stores nothing except
+the commit it points at.
+</p>
+</div>
+</div>
+<div id="outline-container-org22dfea2" class="outline-2">
+<h2 id="org22dfea2"><span class="section-number-2">2.</span> Annotated tags</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+<pre class="src src-shell"><code>$ git tag -a v1 -m "Release v1" B
+</code></pre>
+</div>
+
+<p>
+An annotated tag creates a new object in the repository, just like a commit
+does.
+</p>
+</div>
+</div>
+<div id="outline-container-org534a99f" class="outline-2">
+<h2 id="org534a99f"><span class="section-number-2">3.</span> Why two kinds?</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+They are meant for different jobs.
+</p>
+
+<p>
+<b>Annotated tags are for releases.</b> A release is a public statement: "this commit
+is version 1". People who use the release want to know:
+</p>
+<ul class="org-ul">
+<li><b>Who</b> made the release. The tagger is stored.</li>
+<li><b>When</b> it was released. The tag date is when the release was made. The commit
+date may be much older.</li>
+<li><b>Why</b>. The message can hold release notes.</li>
+</ul>
+
+<p>
+<b>Lightweight tags are for personal or temporary markers.</b> Sometimes you only want
+a quick bookmark, for example:
+</p>
+<ul class="org-ul">
+<li>"the commit I tested last night" (<code>nightly</code>)</li>
+<li>"before I started this risky rebase" (<code>before-rebase</code>)</li>
+</ul>
+
+<p>
+You don't need a tagger, a date or a message for that.
+</p>
+
+<p>
+Some of git's tools treat annotated tags as the 'real' ones and skip lightweight
+tags unless you ask for them.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Command</th>
+<th scope="col" class="org-left">Annotated</th>
+<th scope="col" class="org-left">Lightweight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>git describe</code></td>
+<td class="org-left">Used</td>
+<td class="org-left">Only with <code>--tags</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><code>git push --follow-tags</code></td>
+<td class="org-left">Pushed</td>
+<td class="org-left">Not pushed</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>git show &lt;tag&gt;</code></td>
+<td class="org-left">Shows the tag message, then the commit</td>
+<td class="org-left">Shows only the commit</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Use <code>git cat-file -t &lt;tag&gt;</code> to see which kind a tag is. It prints <code>tag</code> for an
+annotated tag and <code>commit</code> for a lightweight one.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Adithya</p>
+<p class="date">Created: 2026-10-16 Fri 02:10</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+#+TITLE: Sitemap
+#+OPTIONS: toc:nil num:nil
+
+- [[file:20261015113628-blog.html][Blog - Adithya]]
+- [[file:20261016000211-consistent_emacs_key_bindings_across_terminals.html][Consistent Emacs key bindings across terminals]]
+- [[file:20261013123718-design_decisions_for_the_org_roam_directory_structure.html][Design decisions for the org-roam directory structure]]
+- [[file:20261013080414-dynamic_library_loading_cheat_sheet.html][Dynamic Library Loading: Cheat Sheet]]
+- [[file:20261009003739-how_does_git_describe_work.html][How does "git describe" work?]]
+- [[file:20261016001248-instrumenting_a_forever_stream_using_hs_opentelemetry.html][Instrumenting a forever stream using hs-opentelemetry]]
+- [[file:20261014213841-introducing_ical_buddy_el.html][Introducing ical-buddy.el]]
+- [[file:20261016013150-modeling_security_trust_in_haskell.html][Modeling Security/Trust in Haskell]]
+- [[file:20261013004758-motivation_to_keep_slug_in_org_roam_managed_files.html][Motivation to keep slug in org-roam managed files]]
+- [[file:20261009010828-types_of_tags_in_git.html][Types of tags in git]]

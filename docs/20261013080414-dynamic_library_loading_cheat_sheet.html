@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-10-16 Fri 02:10 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dynamic Library Loading: Cheat Sheet</title>
+<meta name="author" content="Adithya" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="./org.css">
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Dynamic Library Loading: Cheat Sheet</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org935ff5b">1. The steps</a></li>
+<li><a href="#orgc7dbc6b">2. What a binary asks for</a></li>
+<li><a href="#orgcd4f15c">3. Symbol versioning</a></li>
+<li><a href="#org448d43d">4. Why glibc is special</a></li>
+<li><a href="#org597e176">5. Useful commands</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org935ff5b" class="outline-2">
+<h2 id="org935ff5b"><span class="section-number-2">1.</span> The steps</h2>
+<div class="outline-text-2" id="text-1">
+<ol class="org-ol">
+<li>Kernel reads <code>PT_INTERP</code> and starts that loader.</li>
+<li>Loader finds every library listed in <code>DT_NEEDED</code> (by SONAME).</li>
+<li>Loader maps the libraries into memory.</li>
+<li>Loader checks that each required <b>version</b> exists in that library.</li>
+<li>Loader resolves symbols (name + version) and patches addresses.</li>
+<li>Loader runs initializers, then jumps to <code>main</code>.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-orgc7dbc6b" class="outline-2">
+<h2 id="orgc7dbc6b"><span class="section-number-2">2.</span> What a binary asks for</h2>
+<div class="outline-text-2" id="text-2">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Item</th>
+<th scope="col" class="org-left">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">PT<sub>INTERP</sub></td>
+<td class="org-left">which loader to use</td>
+</tr>
+
+<tr>
+<td class="org-left">DT<sub>NEEDED</sub></td>
+<td class="org-left">which libraries (SONAMEs) it needs</td>
+</tr>
+
+<tr>
+<td class="org-left">Version needs</td>
+<td class="org-left">which version nodes, from which library</td>
+</tr>
+
+<tr>
+<td class="org-left">Symbols</td>
+<td class="org-left">which name@version it imports</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-orgcd4f15c" class="outline-2">
+<h2 id="orgcd4f15c"><span class="section-number-2">3.</span> Symbol versioning</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Each symbol carries a version tag (<code>memcpy@GLIBC_2.14</code>), so old binaries keep
+getting the old version while new links get the new one.  Old on new works; new
+on old fails.
+</p>
+
+<p>
+This however, is an opt-in feature of the GNU toolchain and loader, and each
+library has to enable it when it is built.
+</p>
+</div>
+</div>
+<div id="outline-container-org448d43d" class="outline-2">
+<h2 id="org448d43d"><span class="section-number-2">4.</span> Why glibc is special</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+glibc <i>is</i> the loader (<code>ld.so</code>) and also the C library. They share private
+internals, so <code>ld.so</code> and <code>libc.so.6</code> must come from the same build.
+</p>
+</div>
+</div>
+<div id="outline-container-org597e176" class="outline-2">
+<h2 id="org597e176"><span class="section-number-2">5.</span> Useful commands</h2>
+<div class="outline-text-2" id="text-5">
+<div class="org-src-container">
+<pre class="src src-sh"><code>readelf -l  prog     # loader path
+readelf -d  prog     # needed libraries
+readelf -V  prog     # version needs
+LD_BIND_NOW=1 ldd -r prog   # check everything resolves
+LD_DEBUG=libs prog   # trace the library search
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Adithya</p>
+<p class="date">Created: 2026-10-16 Fri 02:10</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

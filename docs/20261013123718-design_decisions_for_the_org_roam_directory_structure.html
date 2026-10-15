@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-10-16 Fri 02:10 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Design decisions for the org-roam directory structure</title>
+<meta name="author" content="Adithya" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="./org.css">
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Design decisions for the org-roam directory structure</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orge408476">1. The directory split</a></li>
+<li><a href="#orgb1ae066">2. Where should the hub live?</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orge408476" class="outline-2">
+<h2 id="orge408476"><span class="section-number-2">1.</span> The directory split</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+The <code>org-roam</code> has 2 top level directories:
+</p>
+<ul class="org-ul">
+<li><code>private/</code></li>
+<li><code>public/</code></li>
+</ul>
+
+<p>
+The main motivation for this is the hard boundary while exporting. I only ever
+want to export files in the public directory. The export gate here is more
+direct as the separation is defined by the directory structure.
+</p>
+
+<p>
+We can export a <a href="elisp:(describe-function%20'org-roam-export-with-links)">cluster of nodes</a> or the entire public directory. While exporting
+a cluster of nodes we make sure to filter out notes from the <code>private/</code> directory.
+</p>
+
+<p>
+This should however not be taken as an idiom. We <b>should</b> not have any other
+directories. Notes go either into private or public.
+</p>
+
+<p>
+We can always create domain specific index pages for grouping notes.
+</p>
+</div>
+</div>
+<div id="outline-container-orgb1ae066" class="outline-2">
+<h2 id="orgb1ae066"><span class="section-number-2">2.</span> Where should the hub live?</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The hub file <code>index.org</code> lives in the private directory as it also contains
+references to the <code>private/</code> folder. It could live in the same level as the
+directories but we would need to implement separate export rules to it.
+</p>
+
+<p>
+It is important to understand that the directory structure is irrelevant in
+<code>org-roam</code>. The only reason the public/private split exists is to gate exports
+properly.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Adithya</p>
+<p class="date">Created: 2026-10-16 Fri 02:10</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

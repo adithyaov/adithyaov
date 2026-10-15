@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-10-16 Fri 02:10 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Modeling Security/Trust in Haskell</title>
+<meta name="author" content="Adithya" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="./org.css">
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Modeling Security/Trust in Haskell</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org3b7dc83">1. Validation</a></li>
+<li><a href="#org04bc34d">2. Authorization</a></li>
+<li><a href="#orgeb8fd38">3. Logic</a></li>
+<li><a href="#org3e1dccb">4. Runner</a></li>
+<li><a href="#org57f7595">5. Example: Creating a Blog Comment</a>
+<ul>
+<li><a href="#org8002ee9">5.1. Rules</a></li>
+<li><a href="#org9134495">5.2. Domain Types</a></li>
+<li><a href="#orgbfe02f4">5.3. Endpoint Payload</a></li>
+<li><a href="#org021a3d6">5.4. Logic</a></li>
+<li><a href="#orga1f8812">5.5. Validation</a></li>
+<li><a href="#org5a0e2ea">5.6. Authorization</a></li>
+</ul>
+</li>
+<li><a href="#orgd79f300">6. Final Thoughts</a></li>
+</ul>
+</div>
+</div>
+<p>
+Any service that accepts arbitrary input needs to pass that input through a
+series of checks before running its core logic. A very common example of such a
+service is an HTTP server.
+</p>
+
+<p>
+There are 2 recurring layers of checks in almost every system:
+</p>
+
+<ol class="org-ol">
+<li><b>Validation (Sanitization)</b>: Is the input data in the expected shape?</li>
+<li><b>Authorization</b>: Are you allowed to do this?</li>
+</ol>
+
+<p>
+The goal of this post is to model these layers so that they can be verified,
+reasoned about, and reviewed independently - without having to understand the
+entire system at once.
+</p>
+<div id="outline-container-org3b7dc83" class="outline-2">
+<h2 id="org3b7dc83"><span class="section-number-2">1.</span> Validation</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+The first step in establishing trust is checking whether the data sent by the
+client is in the correct form. Before the rest of the application can safely
+operate on the input, it must be sanitised (or validated).
+</p>
+
+<p>
+We will model this using a <code>Validation</code> type class.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>newtype Validated a = Validated a
+
+newtype ValidationError = ValidationError String
+    deriving (Show)
+
+data ValidationResult a
+    = VRFailed ValidationError
+    | VRPassed (Validated a)
+
+class Validation a where
+    validate :: a -&gt; ValidationResult a
+</code></pre>
+</div>
+
+<p>
+The key invariant here is simple but powerful:
+</p>
+
+<blockquote>
+<p>
+If the application ever sees a value of type <code>Validated a</code>, then it can trust that
+the data represented by <code>a</code> has already been checked and is in a valid shape.
+</p>
+</blockquote>
+
+<p>
+This allows us to make invalid states unrepresentable beyond this point.
+</p>
+</div>
+</div>
+<div id="outline-container-org04bc34d" class="outline-2">
+<h2 id="org04bc34d"><span class="section-number-2">2.</span> Authorization</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The next step in the chain of trust is authorization. Strictly speaking,
+authentication should come first, but authentication is a prerequisite for the
+authorization layer we are about to design, so we model them together.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>newtype Permitted payload ctx =
+    Permitted { permittedCtx :: ctx }
+
+newtype PermissionError = PermissionError String
+    deriving (Show)
+
+data PermitDecision payload ctx
+    = PDDenied PermissionError
+    | PDAllowed (Permitted payload ctx)
+
+class Monad m =&gt; Auth m payload where
+    type AuthContext payload
+    permit ::
+        Maybe User -&gt;
+        Validated payload -&gt;
+        m (PermitDecision payload (AuthContext payload))
+</code></pre>
+</div>
+
+<p>
+This type class is slightly more involved.
+</p>
+
+<p>
+The associated type <code>AuthContext</code> is part of the <code>Auth</code> type class, which is
+possible because Haskell supports type families. The entire authorization
+machinery is tied to the input type <code>payload</code>. Each <code>payload</code> gets to define its own
+<code>AuthContext</code>.
+</p>
+
+<p>
+The idea behind <code>AuthContext</code> is that authorization often requires building some
+context - perhaps by querying a database or calling an external
+service. Constructing this context may be expensive, and it is often needed
+later by the business logic. Instead of recomputing or discarding it, we carry
+it forward in a type-safe way.
+</p>
+
+<p>
+The <code>Maybe User</code> argument represents authentication. We assume that there exists
+some mechanism that attempts to extract user identity information from the
+request and produces a <code>User</code> if successful. <code>Nothing</code> indicates that no user
+identity could be established - for example, when an HTTP request has no cookies
+or authorization headers.
+</p>
+
+<p>
+One crucial property of this design is that authorization can be performed <b>if
+and only if</b> validation has already succeeded. This enforces a strict flow of
+trust through the system.
+</p>
+</div>
+</div>
+<div id="outline-container-orgeb8fd38" class="outline-2">
+<h2 id="orgeb8fd38"><span class="section-number-2">3.</span> Logic</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Now let’s tie the validation and authorization layers into the logic layer.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>class Monad m =&gt; Logic m payload where
+    type LogicResult payload
+    logic ::
+        Validated payload -&gt;
+        Permitted payload (AuthContext payload) -&gt;
+        m (LogicResult payload)
+</code></pre>
+</div>
+
+<p>
+At this point, the logic layer can rely on two guarantees:
+</p>
+
+<ol class="org-ol">
+<li>The input data has been validated.</li>
+<li>Authorization has succeeded.</li>
+</ol>
+
+<p>
+As with <code>AuthContext</code>, the <code>LogicResult</code> is parameterized by <code>payload</code> because
+different endpoints naturally produce different results.
+</p>
+</div>
+</div>
+<div id="outline-container-org3e1dccb" class="outline-2">
+<h2 id="org3e1dccb"><span class="section-number-2">4.</span> Runner</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+Putting everything together, we can define a generic endpoint runner:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>runEndpoint ::
+    forall m payload.
+    ( MonadThrow m
+    , Validation payload
+    , Auth m payload
+    , Logic m payload
+    ) =&gt;
+    Maybe User -&gt;
+    payload -&gt;
+    m (LogicResult payload)
+runEndpoint user payload0 = do
+    payload &lt;- vresult throwM pure (validate payload0)
+    decision &lt;- permit user payload
+    case decision of
+        PDDenied perr -&gt; throwM perr
+        PDAllowed ctx -&gt; logic payload ctx
+</code></pre>
+</div>
+
+<p>
+This function clearly expresses the intended flow:
+</p>
+
+<ol class="org-ol">
+<li>Validate the input.</li>
+<li>Authorize the request.</li>
+<li>Run the business logic.</li>
+</ol>
+
+<p>
+Each step is isolated, explicit, and independently testable.
+</p>
+</div>
+</div>
+<div id="outline-container-org57f7595" class="outline-2">
+<h2 id="org57f7595"><span class="section-number-2">5.</span> Example: Creating a Blog Comment</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+Consider a simple blog platform where users can leave comments on posts.
+</p>
+</div>
+<div id="outline-container-org8002ee9" class="outline-3">
+<h3 id="org8002ee9"><span class="section-number-3">5.1.</span> Rules</h3>
+<div class="outline-text-3" id="text-5-1">
+<ol class="org-ol">
+<li>A comment body must be non-empty and at most 500 characters.</li>
+<li>Only logged-in users can comment.</li>
+<li>Users who are banned may still log in, but are not allowed to post comments.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org9134495" class="outline-3">
+<h3 id="org9134495"><span class="section-number-3">5.2.</span> Domain Types</h3>
+<div class="outline-text-3" id="text-5-2">
+<div class="org-src-container">
+<pre class="src src-haskell"><code>data User = User
+    { userId :: Int
+    }
+
+data PostId = PostId Int
+</code></pre>
+</div>
+
+<p>
+We assume that some user-related information lives in the database.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>isUserBanned :: User -&gt; IO Bool
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgbfe02f4" class="outline-3">
+<h3 id="orgbfe02f4"><span class="section-number-3">5.3.</span> Endpoint Payload</h3>
+<div class="outline-text-3" id="text-5-3">
+<div class="org-src-container">
+<pre class="src src-haskell"><code>data CreateComment = CreateComment
+    { ccPostId :: PostId
+    , ccBody   :: String
+    }
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org021a3d6" class="outline-3">
+<h3 id="org021a3d6"><span class="section-number-3">5.4.</span> Logic</h3>
+<div class="outline-text-3" id="text-5-4">
+<p>
+The logic layer is intentionally boring. It does not perform validation or
+authorization checks—it relies entirely on the types.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>createComment :: User -&gt; PostId -&gt; String -&gt; IO ()
+
+instance Logic IO CreateComment where
+    type LogicResult CreateComment = ()
+    logic
+        (Validated CreateComment{..})
+        (Permitted user) =
+            createComment user ccPostId ccBody
+</code></pre>
+</div>
+
+<p>
+At this point we <b>know</b>:
+</p>
+
+<ul class="org-ul">
+<li>The comment body is valid.</li>
+<li>The user is authenticated.</li>
+<li>The user is allowed to comment.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orga1f8812" class="outline-3">
+<h3 id="orga1f8812"><span class="section-number-3">5.5.</span> Validation</h3>
+<div class="outline-text-3" id="text-5-5">
+<p>
+Validation checks only the <b>shape</b> of the input.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>instance Validation CreateComment where
+    validate val
+        | null (ccBody val) =
+            VRFailed (ValidationError "Comment cannot be empty")
+        | length (ccBody val) &gt; 500 =
+            VRFailed (ValidationError "Comment is too long")
+        | otherwise =
+            VRPassed (Validated val)
+</code></pre>
+</div>
+
+<p>
+No user information is needed here, and no I/O is performed.
+</p>
+</div>
+</div>
+<div id="outline-container-org5a0e2ea" class="outline-3">
+<h3 id="org5a0e2ea"><span class="section-number-3">5.6.</span> Authorization</h3>
+<div class="outline-text-3" id="text-5-6">
+<p>
+Authorization answers the question: <b>is this user allowed to perform this action?</b>
+</p>
+
+<div class="org-src-container">
+<pre class="src src-haskell"><code>instance Auth IO CreateComment where
+    type AuthContext CreateComment = User
+
+    permit Nothing _ =
+        pure $ PDDenied (PermissionError "Login required")
+
+    permit (Just user) _ = do
+        banned &lt;- isUserBanned user
+        if banned
+        then pure $ PDDenied (PermissionError "User is banned")
+        else pure $ PDAllowed (Permitted user)
+</code></pre>
+</div>
+
+<p>
+This step is allowed to:
+</p>
+
+<ul class="org-ul">
+<li>Perform I/O</li>
+<li>Query the database</li>
+<li>Build context that will be reused by the logic layer</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-orgd79f300" class="outline-2">
+<h2 id="orgd79f300"><span class="section-number-2">6.</span> Final Thoughts</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+This example closely mirrors real-world systems:
+</p>
+
+<ul class="org-ul">
+<li><b>Validation</b>: Is the comment text reasonable?</li>
+<li><b>Authorization</b>: Is this user allowed to comment?</li>
+</ul>
+
+<p>
+Most importantly, the business logic never re-checks these conditions. The type
+system guarantees that by the time <code>logic</code> runs, all trust boundaries have already
+been crossed.
+</p>
+
+<p>
+This keeps the logic simple, predictable, and hard to misuse - exactly the goal
+of separating validation, authorization, and logic into explicit layers. These
+layers can evolve independently, making the system easier to maintain, review,
+and extend over time.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Adithya</p>
+<p class="date">Created: 2026-10-16 Fri 02:10</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

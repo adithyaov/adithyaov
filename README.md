@@ -1,1 +1,1 @@
-[adithya.cc](https://www.adithya.cc/)
+[adithya.cc](https://adithya.cc/)
